@@ -203,6 +203,9 @@ class Engine(TankBundle):
         # main thread:
         self._invoker, self._async_invoker = self.__create_invokers()
 
+        # run global, core, engine pre app init hook
+        tk.execute_core_hook(constants.ENGINE_PRE_APP_INIT_HOOK_NAME, engine=self)
+
         # run any init that needs to be done before the apps are loaded:
         self.pre_app_init()
 
