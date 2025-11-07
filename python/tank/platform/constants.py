@@ -71,6 +71,9 @@ ENGINE_ENV_LOCATIONS = "env"
 # the key in the configuration for an engine which holds the environment
 ENGINE_CONFIG_ENVIRONMENT_KEY = "environment"
 
+ENGINE_PRE_APP_INIT_HOOK_NAME = "engine_pre_app_init"
+"""File (stem) name for core hook that's run just before `.Engine.pre_app_init`."""
+
 # hook that is executed whenever an engine has initialized
 TANK_ENGINE_INIT_HOOK_NAME = "engine_init"
 
