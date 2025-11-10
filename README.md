@@ -18,6 +18,8 @@ cloned down via
 git clone --recurse-submodule ...
 ```
 
+### Syncing with SG
+
 Then `cd` into this repo and add [shotgunsoftware/tk-core](https://github.com/shotgunsoftware/tk-core)
 as the `upstream` remote, which we'll then use as pull only (one-time setup):
 
@@ -42,9 +44,16 @@ git push origin master v1.2.3 1.2.3-th.1.0.0  # Push branch, SG tag and our tag
 Optionally, then go to https://github.com/Treehouse-Digital/tk-core/releases/new and
 create a new release with the `1.2.3-th.1.0.0` tag.
 
-Any additional changes can then be made and pushed to our `master` branch and released as
-using sem-ver version numbering after a `-th.` segment.
-Be sure to update the changelog below.
+### Additional changes
+
+Each change should branch off SG's `v#.#.#` tag as per above. The branch should be
+named `th-#.#.#` i.e. `th-0.23.2` when branching off SG `v0.23.2`.
+
+`master` branch should point to the latest tip of `th-#.#.#` where possible.
+
+Any additional changes can then be made and pushed to the `th-#.#.#` branch
+(and `master` if latest) and released as using sem-ver version numbering after a
+`-th.` segment. Be sure to update the changelog below.
  
 ## Changelog
 
