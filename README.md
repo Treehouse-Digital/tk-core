@@ -29,21 +29,22 @@ git remote update
 ```
 
 Afterwards, merge-and-squash our changes onto latest version tag, suppose new
-SG/upstream version tag `v1.0.0` appears, before tagging and pushing both SG's tag,
+SG/upstream version tag `v1.2.3` appears, before tagging and pushing both SG's tag,
 our updated `master` and our Rez-compatible tag back to our fork (origin)
 
 ```bash
 git checkout -B master origin/master  # Force sync with our GitHub fork
-git merge --squash v1.0.0 && git commit --no-edit
-git tag 1.0.0-1  # Rez-compatible version number
-git push origin master v1.0.0 1.0.0-1  # Push branch, SG tag and our tag
+git merge --squash v1.2.3 && git commit --no-edit
+git tag 1.2.3-th.1.0.0  # Rez-compatible version number
+git push origin master v1.2.3 1.2.3-th.1.0.0  # Push branch, SG tag and our tag
 ```
 
 Optionally, then go to https://github.com/Treehouse-Digital/tk-core/releases/new and
-create a new release with the `1.0.0-1` tag.
+create a new release with the `1.2.3-th.1.0.0` tag.
 
 Any additional changes can then be made and pushed to our `master` branch and released as
-`1.0.0-2`, `1.0.0-3`, etc. Be sure to update the changelog below.
+using sem-ver version numbering after a `-th.` segment.
+Be sure to update the changelog below.
  
 ## Changelog
 
