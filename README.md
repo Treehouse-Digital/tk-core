@@ -1,3 +1,72 @@
+Custom fork of [shotgunsoftware/tk-core](https://github.com/shotgunsoftware/tk-core). Use by editing
+[tk-config-default2:core/core_api.yml](https://github.com/shotgunsoftware/tk-config-default2/blob/master/core/core_api.yml)
+to:
+
+```yaml
+location:
+  type: git
+  path: https://github.com/Treehouse-Digital/tk-core.git
+  version: 0.23.2-1
+```
+
+## Developing
+
+This is currently used as a submodule within a bigger git repo, which should have been
+cloned down via
+
+```bash
+git clone --recurse-submodule ...
+```
+
+### Syncing with SG
+
+Then `cd` into this repo and add [shotgunsoftware/tk-core](https://github.com/shotgunsoftware/tk-core)
+as the `upstream` remote, which we'll then use as pull only (one-time setup):
+
+```bash
+cd /path/to/tk-core
+git remote add upstream git@github.com:shotgunsoftware/tk-core.git
+git remote set-url --push upstream PUSH-NOT-ALLOWED
+git remote update
+```
+
+Afterwards, merge-and-squash our changes onto latest version tag, suppose new
+SG/upstream version tag `v1.2.3` appears, before tagging and pushing both SG's tag,
+our updated `master` and our Rez-compatible tag back to our fork (origin)
+
+```bash
+git checkout -B master origin/master  # Force sync with our GitHub fork
+git merge --squash v1.2.3 && git commit --no-edit
+git tag 1.2.3-th.1.0.0  # Rez-compatible version number
+git push origin master v1.2.3 1.2.3-th.1.0.0  # Push branch, SG tag and our tag
+```
+
+Optionally, then go to https://github.com/Treehouse-Digital/tk-core/releases/new and
+create a new release with the `1.2.3-th.1.0.0` tag.
+
+### Additional changes
+
+Each change should branch off SG's `v#.#.#` tag as per above. The branch should be
+named `th-#.#.#` i.e. `th-0.23.2` when branching off SG `v0.23.2`.
+
+`master` branch should point to the latest tip of `th-#.#.#` where possible.
+
+Any additional changes can then be made and pushed to the `th-#.#.#` branch
+(and `master` if latest) and released as using sem-ver version numbering after a
+`-th.` segment. Be sure to update the changelog below.
+ 
+## Changelog
+
+These track the only functional differences between SG/upstream and our own fork.
+
+### Added
+
+- Global, cross-engine, `engine_pre_app_init` core hook for
+  running pre-`Engine.pre_app_init()` actions
+
+
+----
+
 [![VFX Platform](https://img.shields.io/badge/vfxplatform-2025%20%7C%202024%20%7C%202023%20%7C%202022-blue.svg)](http://www.vfxplatform.com/)
 [![Python](https://img.shields.io/badge/python-3.11%20%7C%203.10%20%7C%203.9-blue.svg)](https://www.python.org/)
 [![Reference Documentation](http://img.shields.io/badge/doc-reference-blue.svg)](http://developer.shotgridsoftware.com/tk-core)
