@@ -6,10 +6,10 @@ to:
 
 ```yaml
 location:
-  type: github_release,
-  organization: Treehouse-Digital,
+  type: github_release
+  organization: Treehouse-Digital
   repository: tk-core
-  version: 0.23.8-th.1.0.0
+  version: 0.23.9-th.1.1.0
 ```
 
 ## Developing
@@ -26,13 +26,11 @@ git remote set-url --push upstream PUSH-NOT-ALLOWED
 git remote update
 ```
 
-Afterwards, merge-and-squash our changes onto latest version tag, suppose new
-SG/upstream version tag `v1.2.3` appears, before tagging and pushing both SG's tag,
-our updated `master` and our Rez-compatible tag back to our fork (origin)
+Afterwards, merge the latest version tag into our changes. Suppose new SG/upstream version tag `v1.2.3` appears, before tagging and pushing both SG's tag, our updated `master` and our Rez-compatible tag back to our fork (origin)
 
 ```bash
 git checkout -B master origin/master  # Force sync with our GitHub fork
-git merge --squash v1.2.3 && git commit --no-edit
+git merge v1.2.3
 git tag 1.2.3-th.1.0.0  # Rez-compatible version number
 git push origin master v1.2.3 1.2.3-th.1.0.0  # Push branch, SG tag and our tag
 ```
@@ -53,13 +51,15 @@ Any additional changes can then be made and pushed to the `th-#.#.#` branch
 
 ## Changelog
 
+Our own `th-#.#.#` versioning stream is independent of SG's `v#.#.#`, but includes it in the full version number/tag for clarity on what SG version each `th` release is based on.
+
+See [Releases](https://github.com/Treehouse-Digital/tk-core/releases)
+
 These track the only functional differences between SG/upstream and our own fork.
 
-### Fixed
+### Added
 
-- `sys.modules` name now set so `exec_module()` works as expected
-  (See https://github.com/shotgunsoftware/tk-core/pull/1092)
-
+- `sgtk.platform.util.env_configs(context)` for getting raw-ish serialized values from env YAML.
 
 ----
 

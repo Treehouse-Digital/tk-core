@@ -10,11 +10,13 @@
 
 import logging
 
-from .import_stack import ImportStack
+from ..api import Sgtk
+from ..context import Context
 from ..errors import TankError
-from .errors import TankContextChangeNotSupportedError, TankCurrentModuleNotFoundError
-from .engine import current_engine, _restart_engine
 from ..log import LogManager
+from .engine import _restart_engine, current_engine, get_environment_from_context
+from .errors import TankContextChangeNotSupportedError, TankCurrentModuleNotFoundError
+from .import_stack import ImportStack
 
 
 def _get_current_bundle():
@@ -273,3 +275,61 @@ def get_logger(module_name):
         return logging.getLogger(full_log_path)
     except TankCurrentModuleNotFoundError:
         return LogManager.get_logger("no_current_bundle.%s" % (module_name,))
+
+
+def env_configs(context: Context, tk: Sgtk | None = None) -> dict[str, dict[str, dict]]:
+    """Compose a more __raw__ environment configs for given context.
+
+    Useful to examine arbitrary values deserialized and resolved from the ``env/*.yml``
+    files. Dictionary returned is keyed::
+
+        {
+            "engines": {
+                "tk-NAME": {  # per engine name in env e.g. tk-nuke
+                    "location": engine_descriptor_dict,
+                    "settings": engine_settings_dict,
+                    "apps": {
+                        "tk-NAME": {  # per app name in engine e.g. tk-multi-workfiles2
+                            "location": app_descriptor_dict,
+                            "settings": app_settings_dict,
+                        },
+                        ...
+                    }
+                },
+                ...
+            },
+            "frameworks": {
+                "tk-NAME": {
+                    "location": framework_descriptor_dict,
+                    "settings": framework_settings_dict,
+                },
+                ...
+            },
+        }
+
+
+    """
+    env = get_environment_from_context(tk or context.sgtk, context)
+    return {
+        "engines": {
+            engine_name: {
+                "location": env.get_engine_descriptor_dict(engine_name),
+                "settings": env.get_engine_settings(engine_name),
+                "apps": {
+                    app_name: {
+                        "location": env.get_app_descriptor_dict(engine_name, app_name),
+                        "settings": env.get_app_settings(engine_name, app_name),
+                    }
+                    for app_name in env.get_apps(engine_name)
+                },
+            }
+            for engine_name in env.get_engines()
+        },
+        "frameworks": {
+            framework_name: {
+                "location": env.get_framework_descriptor_dict(framework_name),
+                "settings": env.get_framework_settings(framework_name),
+            }
+            for framework_name in env.get_frameworks()
+        },
+    }
