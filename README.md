@@ -16,8 +16,7 @@ location:
 
 ### Syncing with SG
 
-Then `cd` into this repo and add [shotgunsoftware/tk-core](https://github.com/shotgunsoftware/tk-core)
-as the `upstream` remote, which we'll then use as pull only (one-time setup):
+Then `cd` into this repo and add [shotgunsoftware/tk-core](https://github.com/shotgunsoftware/tk-core) as the `upstream` remote, which we'll then use as pull only (one-time setup):
 
 ```bash
 cd /path/to/tk-core
@@ -26,7 +25,7 @@ git remote set-url --push upstream PUSH-NOT-ALLOWED
 git remote update
 ```
 
-Afterwards, merge the latest version tag into our changes. Suppose new SG/upstream version tag `v1.2.3` appears, before tagging and pushing both SG's tag, our updated `master` and our Rez-compatible tag back to our fork (origin)
+Afterwards, suppose new SG/upstream version tag `v1.2.3` appears, merge the latest version tag into our changes before tagging and pushing both SG's tag, our updated `master` and our Rez-compatible tag back to our fork (origin)
 
 ```bash
 git checkout -B master origin/master  # Force sync with our GitHub fork
@@ -51,7 +50,7 @@ Any additional changes can then be made and pushed to the `th-#.#.#` branch
 
 ## Changelog
 
-Our own `th-#.#.#` versioning stream is independent of SG's `v#.#.#`, but includes it in the full version number/tag for clarity on what SG version each `th` release is based on.
+Starting from `0.23.9-th.1.1.0`, our own `th-#.#.#` versioning stream is independent of SG's `v#.#.#`, but includes it in the full version number/tag for clarity on what SG version each `th` release is based on.
 
 See [Releases](https://github.com/Treehouse-Digital/tk-core/releases)
 
