@@ -7,6 +7,7 @@
 # By accessing, using, copying or modifying this work you indicate your
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
+from __future__ import annotations
 
 import logging
 
@@ -306,7 +307,6 @@ def env_configs(context: Context, tk: Sgtk | None = None) -> dict[str, dict[str,
                 ...
             },
         }
-
 
     """
     env = get_environment_from_context(tk or context.sgtk, context)

@@ -9,6 +9,13 @@ but (as of [0.23.9-th.1.1.0]) versioned independently from the main project vers
 that compatibility and features specific to Treehouse Digital are easily tracked.
 
 
+## [0.23.9-th.1.2.2] - 2026-07-20
+
+### Fixed
+
+- Missing `__future__` import statement that's requirement by [0.23.9-th.1.1.0]
+
+
 ## [0.23.9-th.1.2.1] - 2026-07-20
 
 ### Fixed
