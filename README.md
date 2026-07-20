@@ -9,7 +9,13 @@ location:
   type: github_release
   organization: Treehouse-Digital
   repository: tk-core
-  version: 0.23.9-th.1.1.0
+  version: 0.23.9-th.1.2.0
+```
+
+For standalone, use [pip Git VCS URL](https://pip.pypa.io/en/stable/topics/vcs-support/#vcs-support)
+
+```bash
+pip install 'git+https://github.com/Treehouse-Digital/tk-core@0.23.9-th.1.2.0'
 ```
 
 ## Developing
