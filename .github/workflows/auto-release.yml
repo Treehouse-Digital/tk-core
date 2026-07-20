@@ -18,7 +18,7 @@ jobs:
       name: ${{ steps.vars.outputs.name }}
       name_sed_escaped: ${{ steps.vars.outputs.name_sed_escaped }}
     permissions:
-      contents: write
+      contents: read
     steps:
       - uses: actions/checkout@v6
       - name: Check for new version from CHANGELOG.md
@@ -55,8 +55,10 @@ jobs:
           RELEASE_NAME=""
 
           flush_step_output() {
+            RELEASE_NAME_ESCAPED="$(sed -e 's/[][\\/.*^$]/\\&/g' <<< "$RELEASE_NAME")"
+
             echo "name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
-            echo "name_sed_escaped=$(sed -e 's/[][\\/.*^$]/\\&/g' <<< "$RELEASE_NAME")" >> "$GITHUB_OUTPUT"
+            echo "name_sed_escaped=$RELEASE_NAME_ESCAPED" >> "$GITHUB_OUTPUT"
 
             tee -a "$GITHUB_STEP_SUMMARY" << EOF
           Results      | Values
