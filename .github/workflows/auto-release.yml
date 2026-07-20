@@ -1,6 +1,11 @@
 ---
 name: Auto Release
-# Automatically create a release from the latest version in CHANGELOG.md.
+#
+# Automatically create a release commit from the latest version in CHANGELOG.md
+#
+# This release commit should live by itself and not part of any branch since it contains
+# release-specific changes.
+#
 
 'on':
   push:
@@ -17,8 +22,6 @@ jobs:
     outputs:
       name: ${{ steps.vars.outputs.name }}
       name_sed_escaped: ${{ steps.vars.outputs.name_sed_escaped }}
-    permissions:
-      contents: read
     steps:
       - uses: actions/checkout@v6
       - name: Check for new version from CHANGELOG.md
@@ -125,7 +128,7 @@ jobs:
 
           git commit -am "Modified for releasing ${{ env.RELEASE_NAME }}"
           git tag "${{ env.RELEASE_NAME }}"
-          git push origin main "${{ env.RELEASE_NAME }}"
+          git push origin "${{ env.RELEASE_NAME }}"
 
       - name: Create release from tag
         shell: bash
