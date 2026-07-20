@@ -10,7 +10,6 @@ name: Auto Release
 'on':
   push:
     branches: [master]
-    paths: [CHANGELOG.md]
 
 env:
   GH_TOKEN: ${{ github.token }}
@@ -121,7 +120,7 @@ jobs:
             s:shotgunsoftware/tk-core:${{ github.repository }}:
           }
           '
-          sed -iE "$VERSION_REPO" setup.py
+          sed -i -E "$VERSION_REPO" setup.py
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
