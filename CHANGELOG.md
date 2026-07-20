@@ -9,6 +9,13 @@ but (as of [0.23.9-th.1.1.0]) versioned independently from the main project vers
 that compatibility and features specific to Treehouse Digital are easily tracked.
 
 
+## [0.23.9-th.1.2.1] - 2026-07-20
+
+### Fixed
+
+- Version naming used so it's compatible with `pip install`
+
+
 ## [0.23.9-th.1.2.0] - 2026-07-20
 
 ### Added
