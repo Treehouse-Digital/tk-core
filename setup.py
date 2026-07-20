@@ -119,11 +119,11 @@ finally:
 setup(
     cmdclass={"build_py": build_py},
     name="sgtk",
-    version=get_version(),
+    version="0.23.9+th.1.2.1",
     description="Flow Production Tracking Toolkit Core API",
     long_description=readme,
     author="Autodesk, Inc",
-    url="https://github.com/shotgunsoftware/tk-core",
+    url="https://github.com/Treehouse-Digital/tk-core",
     license=license,
     # Dependencies for pip installations (when pkgs.zip is not available).
     # Versions are read from requirements/<python_version>/requirements.txt
