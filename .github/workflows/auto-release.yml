@@ -114,9 +114,11 @@ jobs:
           set -eu -o pipefail
 
           # sed expression to replace contents inside setup(...) call
+          PIP_COMPATIBLE_VERSION="${RELEASE_NAME/-/+}""
+
           VERSION_REPO='
           /^setup\(\s*$/,/^\)\s*$/ {
-            s/^(\s*version=)get_version\(\)/\1"${{ env.RELEASE_NAME_ESCAPED }}"/
+            s/^(\s*version=)get_version\(\)/\1"'$PIP_COMPATIBLE_VERSION'"/
             s:shotgunsoftware/tk-core:${{ github.repository }}:
           }
           '
