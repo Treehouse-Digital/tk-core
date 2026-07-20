@@ -20,7 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       name: ${{ steps.vars.outputs.name }}
-      name_sed_escaped: ${{ steps.vars.outputs.name_sed_escaped }}
     steps:
       - uses: actions/checkout@v6
       - name: Check for new version from CHANGELOG.md
@@ -57,16 +56,12 @@ jobs:
           RELEASE_NAME=""
 
           flush_step_output() {
-            RELEASE_NAME_ESCAPED="$(sed -e 's/[][\\/.*^$]/\\&/g' <<< "$RELEASE_NAME")"
-
             echo "name=$RELEASE_NAME" >> "$GITHUB_OUTPUT"
-            echo "name_sed_escaped=$RELEASE_NAME_ESCAPED" >> "$GITHUB_OUTPUT"
 
             tee -a "$GITHUB_STEP_SUMMARY" << EOF
           Results      | Values
           -------------|----------------
           Release Name | '$RELEASE_NAME'
-          (sed escaped)| '$RELEASE_NAME_ESCAPED'
           EOF
           }
 
@@ -103,26 +98,32 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RELEASE_NAME: "${{ needs.release_vars.outputs.name }}"
-      RELEASE_NAME_ESCAPED: "${{ needs.release_vars.outputs.name_sed_escaped }}"
     permissions:
       contents: write
     steps:
       - uses: actions/checkout@v6
+      - name: Setup env vars
+        shell: bash
+        run: |
+          set -eu -o pipefail
+
+          RELEASE_NAME_ESCAPED="$(sed -e 's/[][\\/.*^$]/\\&/g' <<< "$RELEASE_NAME")"
+          echo "PIP_COMPATIBLE_VERSION=${RELEASE_NAME/-/+}" >> "$GITHUB_ENV"
+          echo "RELEASE_NAME_ESCAPED=$RELEASE_NAME_ESCAPED" >> "$GITHUB_ENV"
+
       - name: Modify setup.py
         shell: bash
         run: |
           set -eu -o pipefail
 
           # sed expression to replace contents inside setup(...) call
-          PIP_COMPATIBLE_VERSION="${RELEASE_NAME/-/+}""
-
           VERSION_REPO='
-          /^setup\(\s*$/,/^\)\s*$/ {
-            s/^(\s*version=)get_version\(\)/\1"'$PIP_COMPATIBLE_VERSION'"/
+          /^setup(\s*$/,/^)\s*$/ {
+            s/^\(\s*version=\)get_version()/\1"${{ env.PIP_COMPATIBLE_VERSION }}"/
             s:shotgunsoftware/tk-core:${{ github.repository }}:
           }
           '
-          sed -i -E "$VERSION_REPO" setup.py
+          sed -i "$VERSION_REPO" setup.py
 
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
