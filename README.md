@@ -54,17 +54,19 @@ Any additional changes can then be made and pushed to the `th-#.#.#` branch
 (and `master` if latest) and released as using sem-ver version numbering after a
 `-th.` segment. Be sure to update the changelog below.
 
-## Changelog
+## Versioning
 
-Starting from `0.23.9-th.1.1.0`, our own `th-#.#.#` versioning stream is independent of SG's `v#.#.#`, but includes it in the full version number/tag for clarity on what SG version each `th` release is based on.
+Starting from `0.23.9-th.1.1.0`, our own `-th.#.#.#` versioning stream is independent of SG's `v#.#.#`, but includes it in the full version number/tag for clarity on what SG version each `th` release is based on.
 
-See [Releases](https://github.com/Treehouse-Digital/tk-core/releases)
+> [!NOTE]
+> Although `#.#.#-th.#.#.#` is used on GitHub, it's not a valid [Python packaging Version name](https://packaging.python.org/en/latest/specifications/version-specifiers).
+>
+> `#.#.#+th.#.#.#` is used instead internally during `pip install`.
 
-These track the only functional differences between SG/upstream and our own fork.
+See:
 
-### Added
-
-- `sgtk.platform.util.env_configs(context)` for getting raw-ish serialized values from env YAML.
+- [Releases](https://github.com/Treehouse-Digital/tk-core/releases)
+- [CHANGELOG.md](https://github.com/Treehouse-Digital/tk-core/blob/master/CHANGELOG.md)
 
 ----
 
