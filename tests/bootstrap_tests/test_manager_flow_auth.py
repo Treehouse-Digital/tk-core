@@ -12,14 +12,12 @@ import os
 
 from sgtk.bootstrap import ToolkitManager
 from sgtk.bootstrap.errors import TankBootstrapError
-
 from tank.authentication import flow_auth
 from tank.flowam import constants as flow_const
-
-from tank_test.tank_test_base import setUpModule  # noqa
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
+    mock,
+    setUpModule,  # noqa
     temp_env_var,
 )
 
@@ -160,6 +158,7 @@ class TriggerAmAuthTests(ShotgunTestBase):
         mock_resolve.assert_called_once()
         mock_init.assert_called_once_with(mock_resolve.return_value)
         mock_get.assert_called_once()
+
 
 @mock.patch(
     "tank.authentication.ShotgunAuthenticator.get_user",

@@ -8,29 +8,27 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-from functools import reduce
+import contextlib
 import multiprocessing
 import os
+import shutil
 import sys
 import tempfile
 import time
 import uuid
-import shutil
 import zipfile
-import contextlib
-import pytest
+from functools import reduce
 
-from tank_test.tank_test_base import setUpModule  # noqa
+import pytest
+import sgtk
+import tank
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
+    mock,
+    setUpModule,  # noqa
     skip_if_git_missing,
     temp_env_var,
 )
-
-import sgtk
-import tank
-from tank.util import is_windows
 
 
 def _raise_exception(placeholder_a="default_a", placeholder_b="default_b"):
@@ -42,6 +40,26 @@ def _raise_exception(placeholder_a="default_a", placeholder_b="default_b"):
     :raises: OSError
     """
     raise OSError("An unknown OSError occurred")
+
+
+def onerror(func, path, exc_info):
+    """
+    Error handler for ``shutil.rmtree``.
+
+    If the error is due to an access error (read only file)
+    it attempts to add write permission and then retries.
+
+    If the error is for another reason it re-raises the error.
+
+    Usage : ``shutil.rmtree(path, onerror=onerror)``
+    """
+    import stat
+
+    if not os.access(path, os.W_OK):
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        raise
 
 
 class TestDownloadableIODescriptors(ShotgunTestBase):
@@ -206,7 +224,6 @@ class Implementation(object):
         done = False
 
         while not done and attempt < retries:
-
             zip_tmp = os.path.join(
                 tempfile.gettempdir(), "%s_tank.zip" % uuid.uuid4().hex
             )
@@ -618,7 +635,11 @@ class Implementation(object):
             "e1c03fa",
         )
         if os.path.exists(git_location):
-            shutil.move(git_location, "%s.bak.%s" % (git_location, uuid.uuid4().hex))
+            # cant use `shutil.move` on readonly files on windows
+            shutil.copytree(
+                git_location, "%s.bak.%s" % (git_location, uuid.uuid4().hex)
+            )
+            shutil.rmtree(git_location, onerror=onerror)
 
         # make sure nothing exists
         self.assertFalse(os.path.exists(git_location))
@@ -670,7 +691,11 @@ class Implementation(object):
             "e1c03fa",
         )
         if os.path.exists(git_location):
-            shutil.move(git_location, "%s.bak.%s" % (git_location, uuid.uuid4().hex))
+            # cant use `shutil.move` on readonly files on windows
+            shutil.copytree(
+                git_location, "%s.bak.%s" % (git_location, uuid.uuid4().hex)
+            )
+            shutil.rmtree(git_location, onerror=onerror)
 
         # make sure nothing exists
         self.assertFalse(os.path.exists(git_location))
@@ -706,7 +731,11 @@ class Implementation(object):
             "e1c03fa",
         )
         if os.path.exists(git_location):
-            shutil.move(git_location, "%s.bak.%s" % (git_location, uuid.uuid4().hex))
+            # cant use `shutil.move` on readonly files on windows
+            shutil.copytree(
+                git_location, "%s.bak.%s" % (git_location, uuid.uuid4().hex)
+            )
+            shutil.rmtree(git_location, onerror=onerror)
 
         # make sure nothing exists
         self.assertFalse(os.path.exists(git_location))

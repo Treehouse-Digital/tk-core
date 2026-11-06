@@ -13,20 +13,17 @@ Defines the base class for DCC application launchers all Toolkit engines
 should implement.
 """
 
-import os
-import sys
 import glob
+import os
 import pprint
+import sys
 
 from ..errors import TankError
 from ..log import LogManager
+from ..util import ShotgunPath, is_windows, sgre as re
 from ..util.loader import load_plugin
 from ..util.version import is_version_older
-from ..util import ShotgunPath, is_windows, sgre as re
-
-from . import constants
-from . import validation
-
+from . import constants, validation
 from .bundle import resolve_setting_value
 from .engine import get_env_and_descriptor_for_engine
 
@@ -79,9 +76,7 @@ def create_engine_launcher(tk, context, engine_name, versions=None, products=Non
              on disk.
     """
     # Get the engine environment and descriptor using engine.py code
-    (env, engine_descriptor) = get_env_and_descriptor_for_engine(
-        engine_name, tk, context
-    )
+    env, engine_descriptor = get_env_and_descriptor_for_engine(engine_name, tk, context)
 
     # Make sure it exists locally
     if not engine_descriptor.exists_local():
@@ -408,7 +403,6 @@ class SoftwareLauncher(object):
         # matched components via the regex
         matches = []
         for matching_path in matching_paths:
-
             self.logger.debug("Processing path: %s" % (matching_path,))
 
             match = executable_regex.match(matching_path)

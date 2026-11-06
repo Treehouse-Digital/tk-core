@@ -11,15 +11,14 @@
 import itertools
 import os
 import sys
+
 import sgtk
 from sgtk.util import ShotgunPath
-
-from tank_test.tank_test_base import setUpModule  # noqa
 from tank_test.tank_test_base import (
-    mock,
     TankTestBase,
+    mock,
+    setUpModule,  # noqa
 )
-from tank.bootstrap import constants
 
 
 class TestResolverBase(TankTestBase):
@@ -340,15 +339,18 @@ class TestFallbackHandling(TestResolverBase):
         # make sure we didn't talk to shotgun
         self.assertEqual(find_mock.called, False)
 
+
 class TestAutoUpdate(TestResolverBase):
     """
     A test class for the config resolved when
     the PTR desktop app is launched to startup the tk-desktop
     engine on a site or Project context.
     """
+
     def setUp(self):
         super().setUp()
-        self.resolver._plugin_id = 'basic.desktop'
+        self.resolver._plugin_id = "basic.desktop"
+
 
 class TestResolverPriority(TestResolverBase):
     """
@@ -765,9 +767,7 @@ class TestPipelineLocationFieldPriority(TestResolverBase):
         self.assertEqual(pcs[0]["id"], pc_id)
         self.assertIsNotNone(pcs[0]["config_descriptor"])
 
-        field_lookup = dict(
-            linux="linux_path", darwin="mac_path", win32="windows_path"
-        )
+        field_lookup = dict(linux="linux_path", darwin="mac_path", win32="windows_path")
 
         base_path = "sg_path"
         base_paths = dict(

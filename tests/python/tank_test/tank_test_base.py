@@ -12,33 +12,30 @@
 Base class for engine and app testing
 """
 
-import sys
-import os
-import time
-import shutil
-import pprint
-import threading
-import tempfile
-import contextlib
 import atexit
-import uuid
+import contextlib
 import datetime
 import importlib.util
-from functools import wraps
-
-from collections import defaultdict
-
-from tank_vendor.shotgun_api3.lib import mockgun
-
+import os
+import pprint
+import shutil
+import sys
+import tempfile
+import threading
+import time
 import unittest
+import uuid
+from collections import defaultdict
+from functools import wraps
 from unittest import mock
 
 import sgtk
 import tank
 from tank import path_cache, pipelineconfig_factory
-from tank_vendor import yaml
 from tank.util import is_windows
 from tank.util.user_settings import UserSettings
+from tank_vendor import yaml
+from tank_vendor.shotgun_api3.lib import mockgun
 
 TANK_TEMP = None
 
@@ -101,18 +98,6 @@ def _is_git_missing():
     return git_missing
 
 
-def skip_if_on_travis_ci(reason):
-    """
-    Skips a test if we're on travis-ci and display the error.
-    :returns: The decorated function.
-    """
-
-    def wrapper(func):
-        return unittest.skipIf("TRAVIS" in os.environ, reason)(func)
-
-    return wrapper
-
-
 def skip_if_git_missing(func):
     """
     Decorated that allows to skips a test if PySide is missing.
@@ -120,6 +105,30 @@ def skip_if_git_missing(func):
     :returns: The decorated function.
     """
     return unittest.skipIf(_is_git_missing(), "git is missing from PATH")(func)
+
+
+def _is_git_lfs_missing():
+    """
+    Tests is git-lfs is available in PATH
+    :returns: True is git-lfs is available, False otherwise.
+    """
+    git_lfs_missing = True
+    try:
+        sgtk.util.process.subprocess_check_output(["git", "lfs", "version"])
+        git_lfs_missing = False
+    except Exception:
+        # no git-lfs!
+        pass
+    return git_lfs_missing
+
+
+def skip_if_git_lfs_missing(func):
+    """
+    Decorator that allows to skip a test if git-lfs is missing.
+    :param func: Function to be decorated.
+    :returns: The decorated function.
+    """
+    return unittest.skipIf(_is_git_lfs_missing(), "git-lfs is missing from PATH")(func)
 
 
 def _is_pyside_missing():
@@ -153,6 +162,7 @@ def skip_if_pyside_missing(func):
     """
     return unittest.skipIf(_is_pyside_missing(), "PySide is missing")(func)
 
+
 def _has_pyside2():
     """
     Tests if PySide2 is avalable.
@@ -161,6 +171,7 @@ def _has_pyside2():
     pyside2_spec = importlib.util.find_spec("PySide2")
     found = pyside2_spec is not None
     return found
+
 
 def skip_if_pyside2(found=True):
     """
@@ -188,6 +199,7 @@ def _has_pyside6():
     found = pyside6_spec is not None
     return found
 
+
 def skip_if_pyside6(found=True):
     """
     Decorator that allows to skip tests if PySide6 is missing.
@@ -203,6 +215,7 @@ def skip_if_pyside6(found=True):
         return unittest.skipIf(found_pyside6 == found, msg)(func)
 
     return _skip_if_pyside6
+
 
 def suppress_generated_code_qt_warnings(func):
     """
@@ -619,6 +632,8 @@ class TankTestBase(unittest.TestCase):
 
             # clear global shotgun accessor
             tank.util.shotgun.connection._g_sg_cached_connections = threading.local()
+            # clear the process-wide FlowAM fields cache
+            tank.context._flowam_fields_cache.clear()
         finally:
             if self._old_shotgun_home is not None:
                 os.environ[self.SHOTGUN_HOME] = self._old_shotgun_home
@@ -759,16 +774,16 @@ class TankTestBase(unittest.TestCase):
 
         # Add multiple project roots. Do not update the roots file on creating each storage, wait until all are
         # created and write them all at once (also, we need to swap storage 3 and 4)
-        (self.alt_root_1, self.alt_storage_1) = self.create_storage_root(
+        self.alt_root_1, self.alt_storage_1 = self.create_storage_root(
             project_name, "alternate_1", False
         )
-        (self.alt_root_2, self.alt_storage_2) = self.create_storage_root(
+        self.alt_root_2, self.alt_storage_2 = self.create_storage_root(
             project_name, "alternate_2", False
         )
-        (self.alt_root_3, self.alt_storage_3) = self.create_storage_root(
+        self.alt_root_3, self.alt_storage_3 = self.create_storage_root(
             project_name, "alternate_3", False
         )
-        (self.alt_root_4, self.alt_storage_4) = self.create_storage_root(
+        self.alt_root_4, self.alt_storage_4 = self.create_storage_root(
             project_name, "alternate_4", False
         )
 
@@ -798,16 +813,12 @@ class TankTestBase(unittest.TestCase):
             )
 
         # swap the mapped storage ids
-        self.roots[self.alt_storage_3["code"]][
-            "shotgun_storage_id"
-        ] = self.alt_storage_4[
-            "id"
-        ]  # local storage 4
-        self.roots[self.alt_storage_4["code"]][
-            "shotgun_storage_id"
-        ] = self.alt_storage_3[
-            "id"
-        ]  # local storage 3
+        self.roots[self.alt_storage_3["code"]]["shotgun_storage_id"] = (
+            self.alt_storage_4["id"]
+        )  # local storage 4
+        self.roots[self.alt_storage_4["code"]]["shotgun_storage_id"] = (
+            self.alt_storage_3["id"]
+        )  # local storage 3
 
         roots_path = os.path.join(
             self.pipeline_config_root, "config", "core", "roots.yml"

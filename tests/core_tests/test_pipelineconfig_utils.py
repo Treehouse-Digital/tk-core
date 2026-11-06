@@ -9,28 +9,27 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import importlib.metadata
-import os
 import inspect
+import os
 import sys
 
 import sgtk
 import tank
-
-from tank import pipelineconfig_utils
 from tank import (
-    TankInvalidInterpreterLocationError,
     TankFileDoesNotExistError,
     TankInvalidCoreLocationError,
+    TankInvalidInterpreterLocationError,
     TankNotPipelineConfigurationError,
+    pipelineconfig_utils,
 )
 from tank.util import ShotgunPath, is_windows
-
-from tank_test.tank_test_base import setUpModule  # noqa
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
+    mock,
+    setUpModule,  # noqa
     temp_env_var,
 )
+
 
 class TestGetConfigInstallLocationPathSlashes(ShotgunTestBase):
     """
@@ -44,7 +43,6 @@ class TestGetConfigInstallLocationPathSlashes(ShotgunTestBase):
         """
         # only run this test on windows
         if is_windows():
-
             # This path has multiple issues we've encountered in the wild
             # It without any escaping sequence, it reads as
             # "   C:/configs\\site//project   "
@@ -303,8 +301,8 @@ class TestPipelineConfigUtils(ShotgunTestBase):
             )
 
         # Test with a core location that is invalid.
-        config_with_invalid_core_location = self._create_unlocalized_pipeline_configuration(
-            "config_with_invalid_core"
+        config_with_invalid_core_location = (
+            self._create_unlocalized_pipeline_configuration("config_with_invalid_core")
         )
 
         self._create_core_file(
@@ -317,8 +315,8 @@ class TestPipelineConfigUtils(ShotgunTestBase):
             )
 
         # Test when the core file is missing.
-        config_with_no_core_file_location = self._create_unlocalized_pipeline_configuration(
-            "config_with_no_core_file"
+        config_with_no_core_file_location = (
+            self._create_unlocalized_pipeline_configuration("config_with_no_core_file")
         )
 
         with self.assertRaisesRegex(
@@ -441,9 +439,7 @@ class TestGetCoreApiVersion(ShotgunTestBase):
             path_mock.assert_not_called()
 
     @mock.patch("tank.pipelineconfig_utils._get_version_from_manifest")
-    def test_returns_unknown_for_other_core_when_manifest_missing(
-        self, manifest_mock
-    ):
+    def test_returns_unknown_for_other_core_when_manifest_missing(self, manifest_mock):
         """
         When info.yml is absent and the requested core is not the currently-running
         one, distribution metadata must not leak in as the answer.
@@ -482,9 +478,7 @@ class TestGetCoreApiVersion(ShotgunTestBase):
                 dist_mock.assert_called_once_with("sgtk")
 
     @mock.patch("tank.pipelineconfig_utils._get_version_from_manifest")
-    def test_returns_unknown_when_current_core_resolution_fails(
-        self, manifest_mock
-    ):
+    def test_returns_unknown_when_current_core_resolution_fails(self, manifest_mock):
         """
         If get_path_to_current_core raises (e.g. moved/symlinked install), the
         function preserves the "unknown" contract rather than propagating.

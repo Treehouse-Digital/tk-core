@@ -11,15 +11,14 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import base64
+
 import pytest
-
-from tank_test.tank_test_base import setUpModule  # noqa
+from tank.authentication import errors, user, user_impl
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
+    mock,
+    setUpModule,  # noqa
 )
-
-from tank.authentication import user, user_impl, errors
 from tank_vendor.shotgun_api3 import AuthenticationFault
 
 # Create a set of valid cookies, for SSO and Web related tests.
@@ -84,7 +83,7 @@ class UserTests(ShotgunTestBase):
             "JiříVyčítal",
             "日本のユーザー*",
             "이사이트에서는개발자가",
-            "およびその他の教育リソース" "工作流技术总监或将要设置工作流并希望开发",
+            "およびその他の教育リソース工作流技术总监或将要设置工作流并希望开发",
         ]
         for login in logins:
             user = self._create_test_user(login=login)
@@ -99,7 +98,7 @@ class UserTests(ShotgunTestBase):
             "JiříVyčítal",
             "日本のユーザー*",
             "이사이트에서는개발자가",
-            "およびその他の教育リソース" "工作流技术总监或将要设置工作流并希望开发",
+            "およびその他の教育リソース工作流技术总监或将要设置工作流并希望开发",
         ]
 
         class CustomUser(user_impl.ShotgunUserImpl):
@@ -137,7 +136,7 @@ class UserTests(ShotgunTestBase):
             "JiříVyčítal",
             "日本のユーザー*",
             "이사이트에서는개발자가",
-            "およびその他の教育リソース" "工作流技术总监或将要设置工作流并希望开发",
+            "およびその他の教育リソース工作流技术总监或将要设置工作流并希望开发",
         ]
 
         for login in logins:

@@ -11,9 +11,7 @@
 import os
 
 from tank import TankError
-from tank.util import LocalFileStorageManager
-from tank.util import is_macos, is_windows
-
+from tank.util import LocalFileStorageManager, is_macos, is_windows
 from tank_test.tank_test_base import ShotgunTestBase, setUpModule  # noqa
 
 
@@ -174,7 +172,6 @@ class TestLocalFileStorage(ShotgunTestBase):
         ]
 
         for path_type in old_path_types:
-
             for site_name in hosted_sg_sites:
                 cache_path = LocalFileStorageManager.get_site_root(
                     "https://{}".format(site_name),
@@ -278,7 +275,6 @@ class TestLocalFileStorage(ShotgunTestBase):
             "http://test.shotgunstudio.com",
             "http://test.shotgrid.autodesk.com",
         ]:
-
             path_types = [
                 LocalFileStorageManager.CACHE,
                 LocalFileStorageManager.PERSISTENT,

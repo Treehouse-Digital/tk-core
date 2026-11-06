@@ -33,8 +33,7 @@ from threading import Event, Lock, Thread
 # equivalent between the two, we'll use distro for every version of Python 3.
 from tank_vendor import distro
 
-from . import constants
-from . import sgre as re
+from . import constants, sgre as re
 
 ###############################################################################
 
@@ -72,7 +71,7 @@ class PlatformInfo(object):
             # For macOS / OSX we keep only the Major.minor
             os_version = re.findall(r"\d*\.\d*", raw_version_str)[0]
 
-        except:
+        except Exception:
             pass
 
         return os_version
@@ -96,7 +95,7 @@ class PlatformInfo(object):
             major_version_str = re.findall(r"\d*", raw_version_str)[0]
             os_version = "%s %s" % (distribution, major_version_str)
 
-        except:
+        except Exception:
             pass
 
         return os_version
@@ -116,7 +115,7 @@ class PlatformInfo(object):
             # as it returns a friendly name e.g: XP, 7, 10 etc.
             os_version = platform.release()
 
-        except:
+        except Exception:
             pass
 
         return os_version
@@ -161,7 +160,7 @@ class PlatformInfo(object):
             else:
                 os_info["OS"] = "Unsupported system: (%s)" % (system)
 
-        except:
+        except Exception:
             # On any exception we fallback to default value
             pass
 
@@ -200,7 +199,6 @@ class MetricsQueueSingleton(object):
 
         # create the queue instance if it hasn't been created already
         if not cls.__instance:
-
             # remember the instance so that no more are created
             metrics_queue = super(MetricsQueueSingleton, cls).__new__(
                 cls, *args, **kwargs
@@ -243,7 +241,7 @@ class MetricsQueueSingleton(object):
 
             # remember that we've logged this one already
             self.__logged_metrics.add(metric_identifier)
-        except:
+        except Exception:
             pass
         finally:
             self._lock.release()
@@ -268,14 +266,13 @@ class MetricsQueueSingleton(object):
 
             # there are pending metrics
             if num_pending:
-
                 # determine how many metrics to retrieve
                 if not count or count > num_pending:
                     count = num_pending
 
                 # would be nice to be able to pop N from deque. oh well.
                 metrics = [self._queue.popleft() for i in range(0, count)]
-        except:
+        except Exception:
             pass
         finally:
             self._lock.release()
@@ -417,7 +414,6 @@ class MetricsDispatchWorkerThread(Thread):
 
         # Run until halted
         while not self._halt_event.is_set():
-
             # get the next available metric and dispatch it
             try:
                 # For each dispatch cycle, we empty the queue to prevent
@@ -434,7 +430,7 @@ class MetricsDispatchWorkerThread(Thread):
                     else:
                         break
 
-            except Exception as e:
+            except Exception:
                 pass
             finally:
                 # wait, checking for halt event before more processing
@@ -486,9 +482,9 @@ class MetricsDispatchWorkerThread(Thread):
             if metric.is_supported_event:
                 # If this is a supported event, we just need to tack on the
                 # version of the core api being used.
-                data["event_properties"][
-                    EventMetric.KEY_CORE_VERSION
-                ] = self._engine.sgtk.version
+                data["event_properties"][EventMetric.KEY_CORE_VERSION] = (
+                    self._engine.sgtk.version
+                )
 
                 # If it's a desktop event...
                 # We split <desktop version> / <startup version>
@@ -503,9 +499,9 @@ class MetricsDispatchWorkerThread(Thread):
                         # host_app_version can be `unknown` on development/tests.
                         pass
                     else:
-                        data["event_properties"][
-                            EventMetric.KEY_HOST_APP_VERSION
-                        ] = desktop_version.strip()
+                        data["event_properties"][EventMetric.KEY_HOST_APP_VERSION] = (
+                            desktop_version.strip()
+                        )
                         data["event_properties"]["Event Data"] = {
                             "Startup Version": startup_version.strip()
                         }
@@ -790,7 +786,7 @@ class EventMetric(object):
                 from sgtk.platform.util import current_bundle
 
                 bundle = current_bundle()
-            except:
+            except Exception:
                 pass
 
         if not bundle:
@@ -800,7 +796,7 @@ class EventMetric(object):
                 from ..platform.engine import current_engine
 
                 bundle = current_engine()
-            except:
+            except Exception:
                 # Bailing out trying to guess bundle
                 pass
 

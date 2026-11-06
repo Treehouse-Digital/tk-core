@@ -33,15 +33,26 @@ from .exceptions import (
     EntityNotFoundError,
     FlowError,
 )
-from .fetch import download, fetch, fetch_blob_urls
+from .fetch import (
+    download,
+    fetch,
+    fetch_blob_urls,
+    get_thumbnail_file,
+    get_thumbnail_url,
+)
 from .globals import (
     BASE_TYPE_ID,
     BINARY_TYPE_ID,
     COMMENT_TYPE_ID,
-    DER_SOURCE_TYPE_ID,
+    DER_SOURCE_COMP,
+    DER_SOURCE_TYPE,
+    REFERENCE_TYPE,
     get_client,
     get_webapp_url,
+    LAYER_TYPE,
+    VARIANT_SET_TYPE,
 )
+from .sandbox import CheckoutDraftInfo, get_asset_drafts
 from .storage import (
     _cache_asset_info,
     get_storage_asset_dir,
@@ -54,6 +65,24 @@ from .utils import (
     to_regex_safe_wildcard_string,
     trace,
 )
+
+
+def _get_schema_wildcard(type_name: str) -> str:
+    """Return a wildcard type id matching every version of type name.
+
+    Both the namespace and the version are replaced by a wildcard (e.g.
+    "component.reference" -> "*:component.reference-*"), so components keep
+    matching when the namespace changes, e.g. from private to public schemas.
+
+    Args:
+        type_name: Base name of schema type, without namespace or version
+                   (e.g. "component.reference").
+
+    Returns:
+        Wildcard type id.
+    """
+    # type ids are "<namespace>:<type name>-<version>"
+    return f"*:{type_name}-*"
 
 
 class FlowEntity:
@@ -319,7 +348,10 @@ class ComponentMixin:
         purpose: str = "",
         type_id: str = "",
     ) -> list[FlowComponent]:
-        """Search for component with matching name in given revision.
+        """Search for components matching the given filters in given revision.
+
+        Each filter is a full, case-sensitive match where '*' matches any sequence
+        of characters, and every other character is matched literally.
 
         ..note:: Filters, if defined, are treated as an intersection, meaning
                  results will conform to all filters.
@@ -327,20 +359,27 @@ class ComponentMixin:
         Args:
             name: Component name to match. '*' wild card supported.
                   If blank ignore this filter.
-            purpose: Match this purpose on component. If blank ignore this filter.
-            type_id: Match this type id on component. If blank ignore this filter.
+            purpose: Component purpose to match. '*' wild card supported.
+                     If blank ignore this filter.
+            type_id: Type id to match on the component type or any of its
+                     ancestors. '*' wild card supported. 
+                     If blank ignore this filter.
 
         Returns:
-            Component object or None if not found.
+            List of matching components, in revision order. Empty if none match.
         """
-        regex = "^{}$".format(to_regex_safe_wildcard_string(name))
+        name_regex = "^{}$".format(to_regex_safe_wildcard_string(name))
+        purpose_regex = "^{}$".format(to_regex_safe_wildcard_string(purpose))
+        type_regex = "^{}$".format(to_regex_safe_wildcard_string(type_id))
         matches = []
         for comp in self.components:
-            if name and not re.match(regex, comp.name):
+            if name and not re.match(name_regex, comp.name):
                 continue
-            if purpose and purpose != comp.purpose:
+            if purpose and not re.match(purpose_regex, comp.purpose):
                 continue
-            if type_id and type_id not in comp.parent_type_ids:
+            if type_id and not any(
+                re.match(type_regex, t) for t in comp.parent_type_ids
+            ):
                 continue
             matches.append(comp)
         return matches
@@ -361,10 +400,104 @@ class ComponentMixin:
         Returns:
             Component object or None if not found.
         """
-        matches = self.find_components(name, purpose, type_id)
+        matches = self.find_components(name=name, purpose=purpose, type_id=type_id)
         if matches:
             return matches[0]
         return None
+
+    @trace
+    def get_sources(self) -> list[str]:
+        """Find any Source components within the component list and
+        return a list of target versions that they point to.
+
+        NOTE: A source relationship designates provenance. The target
+              source cab be considered the entity from which this entity
+              was derived.
+
+        Returns:
+            List of version ids that this revision designates as a source.
+
+        Raises:
+            FlowError
+        """
+        source_type_id = _get_schema_wildcard(DER_SOURCE_TYPE)
+        source_comps = self.find_components(type_id=source_type_id)
+        try:
+            return [c.properties["targetVersion"] for c in source_comps]
+        except KeyError as exc:
+            msg = f"Malformed source component detected. {exc}"
+            raise FlowError(msg) from exc
+
+    @trace
+    def get_variant_sets(self) -> dict[str, list[tuple[str, str]]]:
+        """Find any VariantSet components within the component list and
+        return a dictionary of variant sets of the structure
+
+            set name -> list of variants
+
+        where each variant is a tuple (variant name, asset id).
+
+        Returns:
+            Dictionary of variant set names to lists of variants.
+        """
+        varset_type_id = _get_schema_wildcard(VARIANT_SET_TYPE)
+        varset_comps = self.find_components(type_id=varset_type_id)
+        varsets = {}
+        try:
+            for comp in varset_comps:
+                set_name = comp.properties["setName"]
+                variant_name = comp.properties["variantName"]
+                variant_id = comp.properties["targetAsset"]
+                if set_name not in varsets:
+                    varsets[set_name] = []
+                varsets[set_name].append((variant_name, variant_id))
+        except KeyError as exc:
+            msg = f"Malformed variant set component detected. {exc}"
+            raise FlowError(msg) from exc
+        return varsets
+
+    @trace
+    def get_references(self) -> list[str]:
+        """Find any Reference components within the component list and
+        return a list of target versions that they point to.
+
+        NOTE: A reference relationship designates a dependency on another
+              asset version at the time of publish.
+
+        Returns:
+            List of version ids that this revision references as dependencies.
+
+        Raises:
+            FlowError
+        """
+        ref_type_id = _get_schema_wildcard(REFERENCE_TYPE)
+        ref_comps = self.find_components(type_id=ref_type_id)
+        try:
+            return [c.properties["targetVersion"] for c in ref_comps]
+        except KeyError as exc:
+            msg = f"Malformed reference component detected. {exc}"
+            raise FlowError(msg) from exc
+
+    @trace
+    def get_layers(self) -> dict[str, str]:
+        """Find any Layer components and return a dictionary of layer names
+        mapped to the asset id of each layer asset.
+
+        Returns:
+            Dictionary mapping layer name to asset id.
+        """
+        layer_type_id = _get_schema_wildcard(LAYER_TYPE)
+        layer_comps = self.find_components(type_id=layer_type_id)
+        layers = {}
+        try:
+            for comp in layer_comps:
+                layer_name = comp.properties["layerName"]
+                layer_id = comp.properties["targetAsset"]
+                layers[layer_name] = layer_id
+        except KeyError as exc:
+            msg = f"Malformed layer component detected. {exc}"
+            raise FlowError(msg) from exc
+        return layers
 
 
 class FlowProject(FlowEntity):
@@ -555,6 +688,37 @@ class FlowAsset(ComponentMixin, UsesMixin, FlowEntity):
         web_id = urllib.parse.quote(asset_id)
         return f"{webapp_url}/assets?id={web_id}"
 
+    @classmethod
+    def get_drafts(cls, asset_id: str) -> list[CheckoutDraftInfo]:
+        """Return all local drafts that exist for the given asset.
+
+        .. note:: Currently, we only support a single draft per asset,
+                  however this could change in the future with the introduction
+                  of multiple checkouts/sandboxes. Returning a list keeps this
+                  utility flexible.
+
+        The returned values will be CheckoutDraftInfo objects which will contain
+        detailed information about each draft.
+
+        Args:
+            asset_id: Id of MEDM asset. This can also be a revision or version id
+                      from the same asset.
+
+        Returns:
+            List of CheckoutDraftInfo objects.
+
+        Raises:
+            FlowError
+        """
+        # Convert to asset id if necessary
+        if FlowRevision.is_revision_id(asset_id) or FlowVersion.is_version_id(asset_id):
+            asset_id = FlowAsset.get_asset_id(asset_id)
+        elif not FlowAsset.is_asset_id(asset_id):
+            msg = f"Invalid input id provided: {asset_id}. "
+            msg += "Input must be an asset, revision or version id."
+            raise FlowError(msg)
+        return get_asset_drafts(asset_id)
+
     @trace
     def __init__(self, asset: str | medm_model.Asset):
         """
@@ -667,7 +831,6 @@ class FlowAsset(ComponentMixin, UsesMixin, FlowEntity):
         return None
 
     @property
-    @cache
     def type_ids(self) -> list[str]:
         """Return type ids explicitly assigned to asset.
         (This will not include base types.)
@@ -782,37 +945,27 @@ class FlowAsset(ComponentMixin, UsesMixin, FlowEntity):
             raise FlowError(msg) from exc
 
     @trace
-    def find_derivative(
-        self,
-        target_type_id: str,
-        target_component_name: str,
-    ) -> FlowAsset | None:
-        """Search asset to find an outbound derivative where the target
-        matches the criteria provided.
+    def get_derivatives(self) -> list[FlowAsset]:
+        """Find siblings of this asset that were derived from it.
+        (i.e. have a Source component that points to this asset)
 
-        This function searches across ALL revisions of the source asset to find
-        any existing derivative relationship.
-
-        Args:
-            target_type_id: Type of target revision.
-            target_component_name: Name of component on target revision to be matched.
-                                   (Derivative relationships are component to component.)
-
-        Returns:
-            The first derivative asset found, or None.
+        Raises:
+            FlowError
         """
-        # This target id should match the beginning of any revision id belonging to this asset
-        target_id = self.id.replace(self.MEDM_ENTITY, FlowRevision.MEDM_ENTITY)
 
-        # Generate a query to find assets which contain a source-derivative
-        # component with a matching target id
+        # This target id should match the beginning of any version id belonging to this asset
+        target_id = self.id.replace(self.MEDM_ENTITY, FlowVersion.MEDM_ENTITY)
+        # Wildcard type id matching every version of the Source component schema
+        der_source_type_id = _get_schema_wildcard(DER_SOURCE_TYPE)
+
+        # Generate a query to find assets which contain a Source component with a matching target id
         # Since we know derivative assets will be siblings of the current asset
         # we can safely scope this query to the parent asset with depth of 1.
         client = get_client()
-        q_filter = f"has.component.type=={DER_SOURCE_TYPE_ID};"
-        q_filter += f"components[typeId:{DER_SOURCE_TYPE_ID}].data.folder.objectId=like={target_id}*;"
-        q_filter += (
-            f"components[typeId:{DER_SOURCE_TYPE_ID}].name=='{target_component_name}'"
+        q_filter = (
+            f"components[typeId:{der_source_type_id}]"
+            f".data.targetVersion.objectId.id=like={target_id}*;"
+            f"components[typeId:{der_source_type_id}].name=='{DER_SOURCE_COMP}'"
         )
         q_input = medm_model.AssetsByTraversalInput(
             start_at_id=self.parent_id,  # search under parent
@@ -833,6 +986,24 @@ class FlowAsset(ComponentMixin, UsesMixin, FlowEntity):
         der_assets = [
             FlowAsset(a) for a in q_derivatives.assets if a.id != self.parent_id
         ]
+        return der_assets
+
+    @trace
+    def find_derivative(
+        self,
+        target_type_id: str,
+    ) -> FlowAsset | None:
+        """Search asset to find an outbound derivative where the target
+        matches the criteria provided.
+
+        Args:
+            target_type_id: Type of target revision.
+
+        Returns:
+            The first derivative asset found, or None.
+        """
+        # Get list of assets that are derivatives of this asset
+        der_assets = self.get_derivatives()
         # Now filter out derivatives of the wrong type
         der_assets = [a for a in der_assets if target_type_id in a.type_ids]
 
@@ -1055,7 +1226,7 @@ class FlowRevision(ComponentMixin, UsesMixin):
         """
         return get_storage_revision_dir(self.asset_id, self.revision_number)
 
-    def get_component_storage_path(
+    def get_storage_component_path(
         self,
         component_name: str = "",
         component_purpose: str = "",
@@ -1102,6 +1273,31 @@ class FlowRevision(ComponentMixin, UsesMixin):
             component_purpose=component_purpose,
             fetch_dependencies=fetch_dependencies,
         )
+
+    @trace
+    def get_thumbnail_file(self) -> str:
+        """Return the file path to the revision's thumbnail if it exists,
+        fetching it if necessary.
+
+        Returns:
+            Full path to thumbnail in storage.
+
+        Raises:
+            ThumbnailError
+        """
+        return get_thumbnail_file(self._revision)
+
+    @trace
+    def get_thumbnail_url(self) -> str:
+        """Return the signed url to the revision's thumbnail if it exists.
+
+        Returns:
+            Url that can be used to download thumbnail.
+
+        Raises:
+            ThumbnailError
+        """
+        return get_thumbnail_url(self._revision)
 
     def __str__(self):
         """Readable string representation of revision object."""
@@ -1299,7 +1495,16 @@ class FlowComponent:
         for prop, val in component.data.items():
             if prop in ["data", "purpose"]:
                 continue  # already processed these
-            self.properties[prop] = val
+            if isinstance(val, dict) and "reference" in val["typeid"]:
+                try:
+                    # For reference typed properties, store the target entity id
+                    # as the property value
+                    self.properties[prop] = val["objectId"]["id"]
+                except KeyError:
+                    # Ignore malformed properties
+                    continue
+            else:
+                self.properties[prop] = val
 
     @trace
     def get_blob_path(self, blob_index: int = 0) -> str:
@@ -1364,7 +1569,7 @@ class FlowComponent:
         project_id = FlowProject.get_project_id(self.revision.id)
 
         # Do download
-        download(
+        return download(
             self._component,
             project_id,
             directory,

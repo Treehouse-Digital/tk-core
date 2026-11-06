@@ -13,7 +13,6 @@ Methods for downloading things from Shotgun
 """
 
 import os
-import sys
 import tempfile
 import time
 import urllib.parse
@@ -181,7 +180,9 @@ def download_and_unpack_attachment(
     )
 
 
-def download_and_unpack_url(sg, url, target, retries=5, auto_detect_bundle=False, headers=None):
+def download_and_unpack_url(
+    sg, url, target, retries=5, auto_detect_bundle=False, headers=None
+):
     """
     Downloads the content from the provided url, assumes it is a zip file
     and attempts to unpack it into the given location.
@@ -197,7 +198,9 @@ def download_and_unpack_url(sg, url, target, retries=5, auto_detect_bundle=False
         the bundle in a subfolder, this should be correctly unfolded.
     :raises: ShotgunAttachmentDownloadError on failure
     """
-    return _download_and_unpack(sg, target, retries, auto_detect_bundle, url=url, headers=headers or {})
+    return _download_and_unpack(
+        sg, target, retries, auto_detect_bundle, url=url, headers=headers or {}
+    )
 
 
 @LogManager.log_timing
@@ -230,7 +233,6 @@ def _download_and_unpack(
     invalid_zip_file = False
 
     while not invalid_zip_file and not done and attempt < retries:
-
         zip_tmp = os.path.join(tempfile.gettempdir(), "%s_tank.zip" % uuid.uuid4().hex)
         try:
             time_before = time.time()

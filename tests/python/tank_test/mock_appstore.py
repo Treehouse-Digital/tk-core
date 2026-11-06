@@ -13,16 +13,12 @@ Unit tests tank updates.
 """
 
 import functools
-import sys
 from unittest import mock
 
-from sgtk.descriptor import Descriptor, create_descriptor
+from packaging import version
+from sgtk.descriptor import Descriptor
 from sgtk.descriptor.io_descriptor.base import IODescriptorBase
 from sgtk.util import sgre as re
-from tank import TankError
-from tank.platform.environment import InstalledEnvironment
-
-from packaging import version
 
 
 class MockStore(object):
@@ -397,6 +393,7 @@ class _Patcher(object):
         :returns: A decorated function with an extra
             positional argument referencing the mock store singleton.
         """
+
         # Need to reapply doc and name to the method or we won't be able
         # to invoke the test individually.
         @functools.wraps(func)

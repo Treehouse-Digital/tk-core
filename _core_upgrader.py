@@ -19,11 +19,11 @@ next to it in the file system. This is what it will attempt to install.
 
 """
 
-import os
-import sys
-import stat
 import datetime
+import os
 import shutil
+import stat
+import sys
 
 LooseVersion = None
 try:
@@ -51,11 +51,12 @@ CORE_CFG_OS_MAP = {
 
 # get yaml and our shotgun API from the local install
 # which comes with the upgrader. This is the code we are about to upgrade TO.
-vendor = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "python", "tank_vendor")
-)
-sys.path.append(vendor)
-import yaml
+python_folder = os.path.abspath(os.path.join(os.path.dirname(__file__), "python"))
+# Insert at the beginning to ensure local tk-core takes precedence over
+# any installed version in site-packages
+sys.path.insert(0, python_folder)
+
+from tank_vendor import yaml
 
 ###################################################################################################
 # migration utilities
@@ -99,7 +100,7 @@ def __current_version_less_than(log, sgtk_install_root, ver):
     """
     log.debug("Checking if the currently installed version is less than %s..." % ver)
 
-    if __is_upgrade(sgtk_install_root) == False:
+    if not __is_upgrade(sgtk_install_root):
         # there is no current version. So it is definitely
         # not at least version X
         log.debug(
@@ -153,7 +154,6 @@ def _copy_folder(log, src, dst):
 
     names = os.listdir(src)
     for name in names:
-
         srcname = os.path.join(src, name)
         dstname = os.path.join(dst, name)
 
@@ -353,7 +353,6 @@ def upgrade_tank(sgtk_install_root, log):
 
 #######################################################################
 if __name__ == "__main__":
-
     desc = """
     This is a system script used by the upgrade process.
 

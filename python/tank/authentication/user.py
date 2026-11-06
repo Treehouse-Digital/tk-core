@@ -12,12 +12,9 @@ import os
 import threading
 import time
 
-from . import sso_saml2
-from . import interactive_authentication
-from . import user_impl
 from .. import LogManager
+from . import interactive_authentication, sso_saml2, user_impl
 from .errors import AuthenticationCancelled
-
 
 logger = LogManager.get_logger(__name__)
 
@@ -225,7 +222,6 @@ class ShotgunSamlUser(ShotgunWebUser):
             new_expiration = self.get_claims_expiration()
 
             if new_expiration > previous_expiration:
-
                 logger.debug("Automatic claims renewal succeeded.")
                 delta = (new_expiration - time.time()) * preemtive_renewal_threshold
                 # If we are debugging, we will use a shorter expiration time.
@@ -281,7 +277,6 @@ class ShotgunSamlUser(ShotgunWebUser):
         with self._timer_lock:
             self._claims_renewal_cancelled = False
             if self._timer is None or not self.is_claims_renewal_active():
-
                 self._do_automatic_claims_renewal(preemtive_renewal_threshold)
             else:
                 logger.debug(

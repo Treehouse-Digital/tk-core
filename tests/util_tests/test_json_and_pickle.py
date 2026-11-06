@@ -9,12 +9,12 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import tempfile
 import json
 import os
 import sys
-
+import tempfile
 from unittest import TestCase
+
 from sgtk.util import pickle
 
 
@@ -129,7 +129,7 @@ class Impl:
             assertion(None)
             # Strings
             assertion("a")
-            assertion(u"a")
+            assertion("a")
             assertion(self.kanji)
 
         def test_array_values(self):
@@ -144,9 +144,9 @@ class Impl:
                     True,
                     False,
                     None,
-                    {"a": "b", u"c": u"d"},
+                    {"a": "b", "c": "d"},
                     "e",
-                    u"f",
+                    "f",
                 ]
             )
 
@@ -155,10 +155,10 @@ class Impl:
             Ensures we can properly encode a dictionary.
             """
             self._assert_no_unicode_after_load({})
-            self._assert_no_unicode_after_load({"a": "b", u"c": u"d"})
-            self._assert_no_unicode_after_load({"e": ["f"], u"g": [u"h"]})
+            self._assert_no_unicode_after_load({"a": "b", "c": "d"})
+            self._assert_no_unicode_after_load({"e": ["f"], "g": ["h"]})
             self._assert_no_unicode_after_load(
-                {"i": [{"j": ["k"]}], u"l": [{u"m": [u"n"]}]}
+                {"i": [{"j": ["k"]}], "l": [{"m": ["n"]}]}
             )
 
         def _assert_no_unicode_after_load(self, original_value):
@@ -221,7 +221,6 @@ class Impl:
 
 
 class JSONTests(Impl.SerializationTests):
-
     # Parametrizes the tests from the base class.
     filename = "json_saved_with_python_{0}.{1}.json"
     mode = "t"
@@ -231,7 +230,6 @@ class JSONTests(Impl.SerializationTests):
 
 
 class PickleTests(Impl.SerializationTests):
-
     # Parametrizes the tests from the base class.
     filename = "pickle_saved_with_python_{0}.{1}.pickle"
     mode = "b"

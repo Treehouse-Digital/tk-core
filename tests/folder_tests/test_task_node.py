@@ -9,12 +9,7 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
-import unittest
-import shutil
-import tank
-from tank_vendor import yaml
-from tank import TankError
-from tank import hook
+
 from tank import folder
 from tank_test.tank_test_base import (
     TankTestBase,

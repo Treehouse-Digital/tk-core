@@ -11,15 +11,12 @@
 import copy
 import os
 import shutil
-import tank
-from tank_vendor import yaml
-from tank import TankError
-from tank import hook
-from tank import path_cache
-from tank import folder
-from tank_test.tank_test_base import *
+
+from tank import TankError, folder, path_cache
+from tank_test.tank_test_base import TankTestBase
 
 from . import assert_paths_to_create, execute_folder_creation_proxy
+
 
 class TestSchemaCreateFolders(TankTestBase):
     def setUp(self, project_tank_name="project_code"):
@@ -27,9 +24,7 @@ class TestSchemaCreateFolders(TankTestBase):
         to pass in as callbacks to Schema.create_folders. The mock objects are
         then queried to see what paths the code attempted to create.
         """
-        super().setUp(
-            parameters={"project_tank_name": project_tank_name}
-        )
+        super().setUp(parameters={"project_tank_name": project_tank_name})
         self.setup_fixtures()
 
         self.seq = {
@@ -120,8 +115,9 @@ class TestSchemaCreateFolders(TankTestBase):
         # some japanese characters, UTF-8 encoded, just like we would get the from
         # the shotgun API.
 
-        self.shot["code"] = b"\xe3\x81\xbe\xe3\x82\x93\xe3\x81\x88 foo bar".decode("utf-8")
-
+        self.shot["code"] = b"\xe3\x81\xbe\xe3\x82\x93\xe3\x81\x88 foo bar".decode(
+            "utf-8"
+        )
 
         expected_paths = self._construct_shot_paths(
             shot_name=b"\xe3\x81\xbe\xe3\x82\x93\xe3\x81\x88-foo-bar".decode("utf-8")
@@ -324,7 +320,6 @@ class TestSchemaCreateFolders(TankTestBase):
 
 
 class TestSchemaCreateFoldersMultiLevelProjectRoot(TestSchemaCreateFolders):
-
     """
     Test a setup where there are more than a single folder in the Project.tank_name.
 
@@ -332,9 +327,7 @@ class TestSchemaCreateFoldersMultiLevelProjectRoot(TestSchemaCreateFolders):
     """
 
     def setUp(self):
-        super().setUp(
-            project_tank_name="multi/root/project/name"
-        )
+        super().setUp(project_tank_name="multi/root/project/name")
 
 
 class TestSchemaCreateFoldersMultiRoot(TankTestBase):
@@ -606,8 +599,7 @@ class TestCreateFilesystemStructure(TankTestBase):
         self.assertTrue(os.path.exists(expected))
 
     def test_wrong_type_entity_ids(self):
-        """Test passing in type other than list, int or tuple as value for entity_ids parameter.
-        """
+        """Test passing in type other than list, int or tuple as value for entity_ids parameter."""
         for bad_entity_ids in ["abab", self.shot, object()]:
             self.assertRaises(
                 ValueError,
@@ -988,7 +980,6 @@ class TestFolderCreationEdgeCases(TankTestBase):
         self.assertEqual(paths_in_db, [shot_path])
 
         # change the id of the shot - effectively deleting and creating a shot!
-        old_id = self.shot["id"]
         self.shot["id"] = 12345
         # make sure to null the link going from the task too - this is how shotgun
         # would have done a retirement.

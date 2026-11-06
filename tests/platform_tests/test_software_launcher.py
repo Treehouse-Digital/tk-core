@@ -11,18 +11,18 @@
 import logging
 import os
 
-from tank_test.tank_test_base import setUpModule  # noqa
-from tank_test.tank_test_base import (
-    mock,
-    TankTestBase,
-)
-
-from tank.platform import create_engine_launcher
-from tank.platform import SoftwareLauncher
-from tank.platform import SoftwareVersion
-from tank.platform import LaunchInformation
-
 from tank.errors import TankEngineInitError
+from tank.platform import (
+    LaunchInformation,
+    SoftwareLauncher,
+    SoftwareVersion,
+    create_engine_launcher,
+)
+from tank_test.tank_test_base import (
+    TankTestBase,
+    mock,
+    setUpModule,  # noqa
+)
 
 
 class TestEngineLauncher(TankTestBase):
@@ -128,12 +128,11 @@ class TestEngineLauncher(TankTestBase):
         MOCKED_FALLBACKS = ["/a/b/c", "/d/e/f"]
 
         for entity in [self.shot, self.project, self.task]:
-
             ctx = self.tk.context_from_entity(entity["type"], entity["id"])
             # Monkey patch the pipeline configuration object to provide a set of bundle cache
             # fallback paths to serialize into environment variables.
-            self.tk.pipeline_configuration.get_bundle_cache_fallback_paths = (
-                lambda: MOCKED_FALLBACKS
+            self.tk.pipeline_configuration.get_bundle_cache_fallback_paths = lambda: (
+                MOCKED_FALLBACKS
             )
             launcher = create_engine_launcher(self.tk, ctx, self.engine_name)
             env = launcher.get_standard_plugin_environment()
@@ -141,7 +140,6 @@ class TestEngineLauncher(TankTestBase):
                 "SHOTGUN_PIPELINE_CONFIGURATION_ID": str(self.sg_pc_entity["id"]),
                 "SHOTGUN_SITE": "http://unit_test_mock_sg",
                 "SHOTGUN_ENTITY_TYPE": entity["type"],
-                "SHOTGUN_ENTITY_ID": str(entity["id"]),
                 "SHOTGUN_ENTITY_ID": str(entity["id"]),
                 "SHOTGUN_BUNDLE_CACHE_FALLBACK_PATHS": os.pathsep.join(
                     MOCKED_FALLBACKS
@@ -179,7 +177,6 @@ class TestEngineLauncher(TankTestBase):
         with mock.patch(
             min_version_method, new_callable=mock.PropertyMock
         ) as min_version_mock:
-
             min_version_mock.return_value = "2017.2"
 
             self.assertEqual(launcher.minimum_supported_version, "2017.2")
@@ -228,7 +225,6 @@ class TestEngineLauncher(TankTestBase):
         with mock.patch(
             min_version_method, new_callable=mock.PropertyMock
         ) as min_version_mock:
-
             min_version_mock.return_value = "2019"
 
             self.assertEqual(
@@ -296,7 +292,7 @@ class TestEngineLauncher(TankTestBase):
         )
         sw_versions = launcher.scan_software()
         for sw_version in sw_versions:
-            (supported, reason) = launcher._is_supported(sw_version)
+            supported, reason = launcher._is_supported(sw_version)
             if sw_version.version in [2, 3, 4]:
                 self.assertEqual(supported, True)
                 self.assertEqual(reason, "")

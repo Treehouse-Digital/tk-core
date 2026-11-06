@@ -13,28 +13,28 @@ Wrapper around the re module from Python. We're essentially back porting
 some functionality.
 """
 
-# Import constants and functions that won't be wrapped
-from re import (
-    DEBUG,
-    I,
-    IGNORECASE,
-    L,
-    LOCALE,  # noqa import into namespace
-    M,
-    MULTILINE,
-    S,
-    DOTALL,
-    U,
-    UNICODE,
-    X,
-    VERBOSE,
-)
-from re import escape  # noqa import into namespace
-
 # For Python 3, we'll wrap the re functions to inject the ASCII flag when necessary
 # to maintain the previous behavior.
 import re as _re
 import typing as _typing
+
+# Import constants and functions that won't be wrapped
+from re import (  # noqa: F401 import into namespace
+    DEBUG,
+    DOTALL,
+    IGNORECASE,
+    LOCALE,  # noqa import into namespace
+    MULTILINE,
+    UNICODE,
+    VERBOSE,
+    I,
+    L,
+    M,
+    S,
+    U,
+    X,
+    escape,  # noqa import into namespace
+)
 
 
 def _re_wrap(fn, flags_arg_position):

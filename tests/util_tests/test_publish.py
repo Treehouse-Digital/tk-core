@@ -11,14 +11,14 @@
 import os
 
 import tank
-from tank import context, errors
+from tank import context
 from tank.util import is_windows
 from tank_test.tank_test_base import (
-    mock,
     TankTestBase,
-    setUpModule,
-    only_run_on_windows,
+    mock,
     only_run_on_nix,
+    only_run_on_windows,
+    setUpModule,  # noqa
 )
 
 
@@ -83,7 +83,6 @@ class TestShotgunRegisterPublish(TankTestBase):
             "create",
             side_effect=Exception("[Attachment.local_storage] does not exist"),
         ):
-
             if is_windows():
                 local_path = r"x:\tmp\win\path\to\file.txt"
             else:
@@ -112,6 +111,7 @@ class TestShotgunRegisterPublish(TankTestBase):
         seq_path = os.path.join(self.project_root, "folder", "name_001.ext")
 
         create_data = []
+
         # wrap create so we can keep tabs of things
         def create_mock(entity_type, data, return_fields=None):
             create_data.append(data)
@@ -222,7 +222,6 @@ class TestShotgunRegisterPublish(TankTestBase):
 
         # Various paths we support, Unix and Windows styles
         for local_path in values:
-
             publish_data = tank.util.register_publish(
                 self.tk, self.context, local_path, self.name, self.version, dry_run=True
             )
@@ -283,7 +282,6 @@ class TestShotgunRegisterPublish(TankTestBase):
 
         # Various paths we support, Unix and Windows styles
         for local_path, path_dict in values.items():
-
             publish_data = tank.util.register_publish(
                 self.tk, self.context, local_path, self.name, self.version, dry_run=True
             )
@@ -328,7 +326,6 @@ class TestShotgunRegisterPublish(TankTestBase):
         # Publish with an invalid Version, no PublishEntity should have been
         # created
         with self.assertRaises(tank.util.ShotgunPublishError) as cm:
-
             publish_data = tank.util.register_publish(
                 self.tk,
                 self.context,

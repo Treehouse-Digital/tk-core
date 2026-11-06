@@ -57,10 +57,10 @@ class LocalFileStorageManager(object):
     """
 
     # generation of path structures
-    (CORE_V17, CORE_V18) = range(2)
+    CORE_V17, CORE_V18 = range(2)
 
     # supported types of paths
-    (LOGGING, CACHE, PERSISTENT, PREFERENCES) = range(4)
+    LOGGING, CACHE, PERSISTENT, PREFERENCES = range(4)
 
     @classmethod
     def get_global_root(cls, path_type, generation=CORE_V18):
@@ -158,7 +158,6 @@ class LocalFileStorageManager(object):
                 raise ValueError("Unknown platform: %s" % sys.platform)
 
         if generation == cls.CORE_V17:
-
             # previous generation of paths
             if is_macos():
                 if path_type == cls.CACHE:
@@ -309,7 +308,6 @@ class LocalFileStorageManager(object):
             )
 
         else:
-
             # new paths are on the form
             # project 123, config 33:       root/mysite/p123c33
             # project 123 with plugin id:   root/mysite/p123.review.rv

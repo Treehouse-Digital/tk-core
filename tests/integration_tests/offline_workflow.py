@@ -13,17 +13,14 @@ This test ensures that the offline workflow using local bundle cached inside an 
 zipped config can be bootstrap into without requiring to download anything from Shotgun.
 """
 
-import unittest
 import os
-import sys
-
-from sgtk_integration_test import SgtkIntegrationTest
+import unittest
 
 import sgtk
+from sgtk_integration_test import SgtkIntegrationTest
 
 
 class OfflineWorkflow(SgtkIntegrationTest):
-
     OFFLINE_WORKFLOW_TEST = "offline_workflow_test"
 
     @classmethod

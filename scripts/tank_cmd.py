@@ -8,36 +8,33 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import sys
-import os
-from html import escape
-import logging
-import string
-import tank
-import textwrap
 import datetime
+import logging
+import os
+import string
+import sys
+import textwrap
+from html import escape
 
-from tank.errors import TankError, TankInitError
-from tank.commands.tank_command import get_actions, run_action
+import tank
+from tank import LogManager, pipelineconfig_utils
+from tank.authentication import (
+    AuthenticationCancelled,
+    AuthenticationError,
+    CoreDefaultsManager,
+    IncompleteCredentials,
+    ShotgunAuthenticationError,
+    ShotgunAuthenticator,
+)
+from tank.commands import constants as command_constants
+from tank.commands.action_base import Action
 from tank.commands.clone_configuration import clone_pipeline_configuration_html
 from tank.commands.core_upgrade import TankCoreUpdater
-from tank.commands.action_base import Action
-from tank.util import shotgun
-from tank.util import shotgun_entity
-from tank.util import is_windows
-from tank.util import sgre as re
-from tank.platform import constants as platform_constants
-from tank.authentication import ShotgunAuthenticator
-from tank.authentication import AuthenticationError
-from tank.authentication import ShotgunAuthenticationError
-from tank.authentication import AuthenticationCancelled
-from tank.authentication import IncompleteCredentials
-from tank.authentication import CoreDefaultsManager
-from tank.commands import constants as command_constants
+from tank.commands.tank_command import get_actions, run_action
+from tank.errors import TankError, TankInitError
+from tank.platform import constants as platform_constants, engine
+from tank.util import is_windows, sgre as re, shotgun, shotgun_entity
 from tank_vendor import yaml
-from tank.platform import engine
-from tank import pipelineconfig_utils
-from tank import LogManager
 
 # the logger used by this file is sgtk.tank_cmd
 logger = LogManager.get_logger("tank_cmd")
@@ -483,7 +480,6 @@ def _write_shotgun_cache(tk, entity_type, cache_file_name):
     # extract actions into cache file
     res = []
     for cmd_name, cmd_params in engine_commands.items():
-
         # some apps provide a special deny_platforms entry
         if "deny_platforms" in cmd_params["properties"]:
             # setting can be Linux, Windows or Mac
@@ -801,7 +797,6 @@ def _shotgun_run_action(
         )
 
     elif action_name == "__core_info":
-
         code_css_block = "display: block; padding: 0.5em 1em; border: 1px solid #bebab0; background: #faf8f0;"
 
         # create an upgrader instance that we can query if the install is up to date
@@ -839,7 +834,6 @@ def _shotgun_run_action(
             )
 
         elif status == TankCoreUpdater.UPDATE_POSSIBLE:
-
             summary, url = installer.get_release_notes()
 
             logger.info(
@@ -869,7 +863,6 @@ def _shotgun_run_action(
             raise TankError("Unknown Upgrade state!")
 
     elif action_name == "__upgrade_check":
-
         # special built in command that simply tells the user to run the tank command
 
         code_css_block = "display: block; padding: 0.5em 1em; border: 1px solid #bebab0; background: #faf8f0;"
@@ -1144,7 +1137,6 @@ def _resolve_shotgun_entity(entity_type, entity_search_token, constrain_by_proje
         logger.info("More than one item matching your input:")
         logger.info("")
         for x in entities:
-
             chunks = []
 
             chunks.append(" [@%d]" % x["id"])
@@ -1372,7 +1364,6 @@ def run_engine_cmd(pipeline_config_root, context_items, command, using_cwd, args
 
         # work out the project prefix logic
         if ":" in entity_search_token:
-
             # we have an expression on the form tank EntityType project_name:name_expression
             # this is not valid for non-studio commands because these are already project scoped
             if not studio_command_mode:
@@ -1658,7 +1649,6 @@ def _extract_credentials(cmd_line):
 
 
 if __name__ == "__main__":
-
     # set up std toolkit logging to file
     LogManager().initialize_base_file_handler(command_constants.SHELL_ENGINE)
 
@@ -1732,7 +1722,6 @@ if __name__ == "__main__":
 
     exit_code = 1
     try:
-
         cmd_line, credentials = _extract_credentials(cmd_line)
 
         if len(cmd_line) > 0 and cmd_line[0].startswith("shotgun_"):

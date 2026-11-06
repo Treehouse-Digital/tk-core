@@ -12,26 +12,30 @@
 Management of the current context, e.g. the current shotgun entity/step/task.
 
 """
+
 from __future__ import annotations  # needed for python 3.9 support
 
-import os
 import copy
 import json
+import os
 
 from tank_vendor import yaml
 from tank_vendor.flow_integration_sdk import sandbox
-from . import authentication
-from .authentication import flow_auth
 
-from .util import login
-from .util import shotgun_entity
-from .util import shotgun
-from .util import get_sg_entity_name_field
-from .util import pickle
-from . import constants
-from .errors import TankError, TankContextDeserializationError
+from . import authentication, constants
+from .authentication import flow_auth
+from .errors import TankContextDeserializationError, TankError
+from .flowam import constants as flow_const
+from .log import LogManager
 from .path_cache import PathCache
 from .template import TemplatePath
+from .util import login, pickle, shotgun, shotgun_entity
+
+log = LogManager.get_logger(__name__)
+
+# FlowAM fields of the project, so it is only queried once per process.
+# A session only deals with one site and one project. Only a successful query is stored.
+_flowam_fields_cache = {}
 
 
 class Context(object):
@@ -181,9 +185,9 @@ class Context(object):
             :param d2:  Second entity dictionary
             :returns:   True if d1 and d2 are considered equal, otherwise False.
             """
-            if d1 == d2 == None:
+            if d1 is None and d2 is None:
                 return True
-            if d1 == None or d2 == None:
+            if d1 is None or d2 is None:
                 return False
             return d1["type"] == d2["type"] and d1["id"] == d2["id"]
 
@@ -415,15 +419,17 @@ class Context(object):
         The FlowAM project ID for this context, or ``None`` if the project is
         not FlowAM-enabled or there is no project in this context.
 
-        The value is read from the ``sg_flow_am_id`` field on the project dict.
-        It is populated by the bootstrap manager after it queries ShotGrid.
+        The value is the project ``sg_flow_am_id`` field, queried from Flow
+        Production Tracking the first time it is read.
+
+        .. note::
+            The value is cached once per process, assuming a single project per
+            process.
 
         :returns: A string containing the FlowAM project ID, or ``None``.
         :rtype: str or None
         """
-        if self.project:
-            return self.project.get(flow_auth.AM_READY_PROJECT_FIELD)
-        return None
+        return self._get_flowam_fields().get(flow_auth.AM_READY_PROJECT_FIELD)
 
     @property
     def flow_draft_id(self) -> str | None:
@@ -431,6 +437,24 @@ class Context(object):
         If not None, this designates the current draft being worked on within the DCC session.
         """
         return self.__flow_draft_id
+
+    @property
+    def flow_schema_version(self) -> str | None:
+        """
+        The FlowAM schema version of the project in context, or ``None`` if the project is
+        not FlowAM-enabled or there is no schema created.
+
+        The value is the project ``sg_flow_schema_config_version`` field, queried
+        from Flow Production Tracking the first time it is read.
+
+        .. note::
+            The value is cached once per process, assuming a single project per
+            process.
+
+        :returns: A string containing the FlowAM schema version, or ``None``.
+        :rtype: str or None
+        """
+        return self._get_flowam_fields().get(flow_const.FLOW_SCHEMA_VERSION_FIELD)
 
     @property
     def entity_locations(self):
@@ -655,7 +679,6 @@ class Context(object):
 
         # Try to populate fields using paths caches for entity
         if isinstance(template, TemplatePath):
-
             # first, sanity check that we actually have a path cache entry
             # this relates to ticket 22541 where it is possible to create
             # a context object purely from Shotgun without having it in the path cache
@@ -858,7 +881,7 @@ class Context(object):
         """
         Converts the context into a dictionary with keys ``project``,
         ``entity``, ``user``, ``step``, ``task``, ``additional_entities``,
-        ``source_entity``, ``flow_project_id`` and ``flow_draft_id``.
+        ``source_entity``, ``flow_project_id``, ``flow_draft_id`` and ``flow_schema_version``.
 
         .. note ::
             Contrary to :meth:`Context.serialize`, this method discards information
@@ -879,6 +902,7 @@ class Context(object):
             "source_entity": self._cleanup_entity(self.source_entity),
             "flow_project_id": self.flow_project_id,
             "flow_draft_id": self.flow_draft_id,
+            "flow_schema_version": self.flow_schema_version,
         }
 
     def _cleanup_entity(self, entity):
@@ -949,12 +973,20 @@ class Context(object):
             source_entity=data.get("source_entity"),
             flow_draft_id=data.get("flow_draft_id"),
         )
+        # Reuse the serialized FlowAM fields, so a new process doesn't query them.
         if (
             ctx.project is not None
             and "flow_project_id" in data
-            and flow_auth.AM_READY_PROJECT_FIELD not in ctx.project
+            and not _flowam_fields_cache
         ):
-            ctx.project[flow_auth.AM_READY_PROJECT_FIELD] = data["flow_project_id"]
+            _flowam_fields_cache.update(
+                {
+                    flow_auth.AM_READY_PROJECT_FIELD: data.get("flow_project_id"),
+                    flow_const.FLOW_SCHEMA_VERSION_FIELD: data.get(
+                        "flow_schema_version"
+                    ),
+                }
+            )
         return ctx
 
     ################################################################################################
@@ -977,13 +1009,12 @@ class Context(object):
         fields = {}
         # for any sg query field
         for key in template.keys.values():
-
             # check each key to see if it has shotgun query information that we should resolve
             if key.shotgun_field_name:
                 # this key is a shotgun value that needs fetching!
 
                 # ensure that the context actually provides the desired entities
-                if not key.shotgun_entity_type in entities:
+                if key.shotgun_entity_type not in entities:
                     if validate:
                         raise TankError(
                             "Key '%s' in template '%s' could not be populated by "
@@ -1029,7 +1060,6 @@ class Context(object):
                         processed_val = None
 
                     else:
-
                         # now convert the shotgun value to a string.
                         # note! This means that there is no way currently to create an int key
                         # in a tank template which matches an int field in shotgun, since we are
@@ -1260,6 +1290,43 @@ class Context(object):
 
         return found_fields
 
+    def _get_flowam_fields(self) -> dict:
+        """
+        Returns the FlowAM fields of the project in context.
+
+        They are queried from Flow Production Tracking the first time this is
+        called in this process, and cached. A failed query is logged and not
+        cached, so it is retried on the next call.
+
+        :returns: A dict with the ``sg_flow_am_id`` and
+            ``sg_flow_schema_config_version`` values, ``None`` for a non-FlowAM
+            project. An empty dict if there is no project or the query failed.
+        """
+        # Make sure we have a project to query FlowAM fields for.
+        if not self.project:
+            return {}
+
+        if not _flowam_fields_cache:
+            fields = [
+                flow_auth.AM_READY_PROJECT_FIELD,
+                flow_const.FLOW_SCHEMA_VERSION_FIELD,
+            ]
+            try:
+                sg_project = self.__tk.shotgun.find_one(
+                    "Project", [["id", "is", self.project["id"]]], fields
+                )
+            except Exception as e:
+                log.warning(
+                    "Could not query the FlowAM fields for project %s: %s"
+                    % (self.project["id"], e)
+                )
+                return {}
+            sg_project = sg_project or {}
+            for field in fields:
+                _flowam_fields_cache[field] = sg_project.get(field)
+
+        return _flowam_fields_cache
+
     def _get_project_roots(self):
         """
         Gets the project root paths for the current pipeline configuration.
@@ -1268,6 +1335,20 @@ class Context(object):
         :rtype: list
         """
         return list(self.__tk.pipeline_configuration.get_data_roots().values())
+
+    def _update_flowam_schema_version(self, schema_version: str) -> None:
+        """
+        Writes the FlowAM schema version of the project in context to Flow
+        Production Tracking, then updates the cache.
+
+        :param schema_version: The new FlowAM schema version.
+        """
+        self.__tk.shotgun.update(
+            "Project",
+            self.project["id"],
+            {flow_const.FLOW_SCHEMA_VERSION_FIELD: schema_version},
+        )
+        _flowam_fields_cache[flow_const.FLOW_SCHEMA_VERSION_FIELD] = schema_version
 
 
 ################################################################################################
@@ -1350,7 +1431,6 @@ def _from_entity_type_and_id(tk, entity, source_entity=None):
         context.update(task_context)
 
     elif entity_type in ["PublishedFile", "TankPublishedFile"]:
-
         sg_entity = tk.shotgun.find_one(
             entity_type, [["id", "is", entity_id]], ["project", "entity", "task"]
         )
@@ -1465,7 +1545,6 @@ def _from_entity_dictionary(tk, entity_dictionary, source_entity=None):
     }
 
     entity_type = entity_dictionary["type"]
-    entity_id = entity_dictionary["id"]
 
     # try to determine the various entities from the entity dictionary:
     project = None
@@ -1530,7 +1609,7 @@ def _from_entity_dictionary(tk, entity_dictionary, source_entity=None):
             if "id" not in ent or "type" not in ent:
                 return None
             ent_name = _get_entity_name(ent)
-            if ent_name == None:
+            if ent_name is None:
                 return None
             # return a clean dictionary:
             return {"type": ent["type"], "id": ent["id"], "name": ent_name}
@@ -1700,7 +1779,6 @@ def from_path(tk, path, previous_context=None):
         and context.get("entity") == previous_context.entity
         and context.get("additional_entities") == previous_context.additional_entities
     ):
-
         # cool, everything is matching down to the step/task level.
         # if context is missing a step and a task, we try to auto populate it.
         # (note: weird edge that a context can have a task but no step)
@@ -1820,7 +1898,7 @@ def _get_entity_name(entity_dictionary):
     """
     name_field = shotgun_entity.get_sg_entity_name_field(entity_dictionary["type"])
     entity_name = entity_dictionary.get(name_field)
-    if entity_name == None:
+    if entity_name is None:
         # Also check to see if entity contains 'name':
         if name_field != "name":
             entity_name = entity_dictionary.get("name")
@@ -2040,7 +2118,6 @@ def _values_from_path_cache(entity, cur_template, path_cache, required_fields):
     remove_keys = set()
 
     for path in entity_paths:
-
         # validate path and get fields:
         path_fields = cur_template.validate_and_get_fields(
             path, required_fields=required_fields

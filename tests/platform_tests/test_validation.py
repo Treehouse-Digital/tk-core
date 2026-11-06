@@ -1,11 +1,14 @@
 import os
 
-from tank.templatekey import StringKey
-from tank_test.tank_test_base import ShotgunTestBase, TankTestBase
-from tank_test.tank_test_base import setUpModule  # noqa
-from tank.platform.validation import *
-
 import tank
+from tank.errors import TankError
+from tank.platform.validation import validate_schema, validate_settings
+from tank.templatekey import StringKey
+from tank_test.tank_test_base import (
+    ShotgunTestBase,
+    TankTestBase,
+    setUpModule,  # noqa
+)
 
 
 class TestValidateSchema(ShotgunTestBase):
@@ -306,10 +309,8 @@ class TestValidateSettings(TankTestBase):
     def test_hook_does_not_exist(self):
         hook_name = "hook_fake"
         hook_value = "no_such_file"
-        tk = None
         settings = {hook_name: hook_value}
         schema = {hook_name: {"type": "hook"}}
-        hooks_location = os.path.join(self.pipeline_config_root, "config", "hooks")
 
         self.assertRaises(
             TankError,
@@ -448,7 +449,6 @@ class TestValidateSettings(TankTestBase):
 
     def test_list_good_values(self):
         key = "test_setting"
-        bad_type = "bogus"
         list_value = {"type": "list", "allows_empty": True, "values": {"type": "str"}}
         schema = {key: list_value}
         settings = {key: []}

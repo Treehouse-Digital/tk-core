@@ -11,14 +11,12 @@
 import os
 
 import sgtk
-
 from sgtk.bootstrap import ToolkitManager
-
-from tank_test.tank_test_base import setUpModule  # noqa
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
     TankTestBase,
+    mock,
+    setUpModule,  # noqa
     temp_env_var,
 )
 
@@ -148,7 +146,12 @@ class TestFunctionality(ShotgunTestBase):
         class_attrs = set(dir(ToolkitManager))
         instance_attrs = set(dir(ToolkitManager()))
         unserializable_attrs = set(
-            ["_sg_connection", "_sg_user", "_pre_engine_start_callback", "_progress_cb"]
+            [
+                "_pre_engine_start_callback",
+                "_progress_cb",
+                "_sg_connection",
+                "_sg_user",
+            ]
         )
         # Through this operation, we're taking all the symbols that are defined from an instance,
         # we then remove everything that is defined also in the class, which means we're left
@@ -167,7 +170,7 @@ class TestFunctionality(ShotgunTestBase):
         modified_mgr.caching_policy = ToolkitManager.CACHE_FULL
         modified_mgr.pipeline_configuration = "Primary"
         modified_mgr.base_configuration = (
-            "sgtk:descriptor:app_store?" "version=v0.18.91&name=tk-config-basic"
+            "sgtk:descriptor:app_store?version=v0.18.91&name=tk-config-basic"
         )
         modified_mgr.do_shotgun_config_lookup = False
         modified_mgr.plugin_id = "basic.default"

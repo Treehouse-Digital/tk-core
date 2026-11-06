@@ -9,6 +9,13 @@ but (as of [0.23.9-th.1.1.0]) versioned independently from the main project vers
 that compatibility and features specific to Treehouse Digital are easily tracked.
 
 
+## [0.24.6-th.1.3.0] - 2026-11-06
+
+### Changed
+
+- Simplified changes down to just the addition of `sgtk.platform.util.env_configs(context)`
+
+
 ## [0.23.9-th.1.2.2] - 2026-07-20
 
 ### Fixed

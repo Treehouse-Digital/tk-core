@@ -17,7 +17,7 @@ import shutil
 import subprocess
 import sys
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 from setuptools.command.build_py import build_py as _build_py
 
 
@@ -60,7 +60,7 @@ def get_version():
         if re.match(r"v[0-9]*.[0-9]*.[0-9]*", version_git):
             return version_git
         return "dev"
-    except:
+    except Exception:
         # Blindly ignore problems, git might be not available, or the user could
         # be installing from zip archive, etc...
         pass
@@ -90,8 +90,7 @@ def get_install_requires():
     )
     if not os.path.exists(req_file):
         raise Exception(
-            f"Python {sys.version_info.major}.{sys.version_info.minor}"
-            " is not supported"
+            f"Python {sys.version_info.major}.{sys.version_info.minor} is not supported"
         )
 
     with open(req_file) as f:

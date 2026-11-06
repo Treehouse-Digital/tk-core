@@ -10,10 +10,12 @@
 
 import os
 
-from tank_test.tank_test_base import ShotgunTestBase, temp_env_var
-from tank_test.tank_test_base import setUpModule  # noqa
-
 import sgtk
+from tank_test.tank_test_base import (
+    ShotgunTestBase,
+    setUpModule,  # noqa
+    temp_env_var,
+)
 
 
 class TestIODescriptors(ShotgunTestBase):
@@ -231,7 +233,9 @@ class TestIODescriptors(ShotgunTestBase):
             "path": self.git_repo_uri,
         }
         d = sgtk.descriptor.create_descriptor(
-            sg, sgtk.descriptor.Descriptor.APP, location,
+            sg,
+            sgtk.descriptor.Descriptor.APP,
+            location,
         )
 
         self.assertEqual(
@@ -240,6 +244,8 @@ class TestIODescriptors(ShotgunTestBase):
                 self.cache_root, "gitbranch", "tk-multi-shotgunpanel.git", "6547378"
             ),
         )
+        self.assertEqual(d.version, "6547378")
+        self.assertEqual(d._io_descriptor.get_dict()["version"], "6547378")
 
     def test_download_receipt(self):
         """

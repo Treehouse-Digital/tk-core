@@ -12,46 +12,40 @@
 Defines the base class for all Tank Engines.
 """
 
-import os
-import sys
-import logging
-import pprint
-import traceback
+from __future__ import annotations  # required to support python 3.9
+
 import inspect
-import weakref
+import logging
+import os
+import pprint
+import sys
 import threading
+import traceback
+import weakref
 
-from tank.flowam import utils as flow_utils
-
-from ..util.qt_importer import QtImporter
-from ..util.loader import load_plugin
-from .. import hook
-
-from ..errors import TankError
-from .errors import (
-    TankEngineInitError,
-    TankUnresolvedEnvironmentError,
-    TankContextChangeNotSupportedError,
-    TankEngineEventError,
-    TankMissingEngineError,
+from tank.flowam import (
+    host as flow_host,  # noqa: F401 (used in return annotation)
+    utils as flow_utils,
 )
 
-from ..util import sgre as re
-from ..util.metrics import EventMetric
-from ..util.metrics import MetricsDispatcher
-from ..util import metrics_cache
+from .. import hook
+from ..errors import TankError
 from ..log import LogManager
-
-from . import application
-from . import constants
-from . import validation
-from . import events
-from . import qt
-from . import qt5
-from . import qt6
+from ..util import metrics_cache, sgre as re
+from ..util.loader import load_plugin
+from ..util.metrics import EventMetric, MetricsDispatcher
+from ..util.qt_importer import QtImporter
+from . import application, constants, events, qt, qt5, qt6, validation
 from .bundle import TankBundle
-from .framework import setup_frameworks
 from .engine_logging import ToolkitEngineHandler, ToolkitEngineLegacyHandler
+from .errors import (
+    TankContextChangeNotSupportedError,
+    TankEngineEventError,
+    TankEngineInitError,
+    TankMissingEngineError,
+    TankUnresolvedEnvironmentError,
+)
+from .framework import setup_frameworks
 
 # std core level logger
 core_logger = LogManager.get_logger(__name__)
@@ -69,6 +63,11 @@ class Engine(TankBundle):
         """
         Engine instances are constructed by the toolkit launch process
         and various factory methods such as :meth:`start_engine`.
+
+        For Flow-enabled contexts (``context.flow_project_id`` set), this
+        also runs ``flow_utils.init_flow()`` to set up the Flow Integration
+        SDK session and provision pipeline schemas when the SG schema
+        config version does not match the bundled config.
 
         :param tk: :class:`~sgtk.Sgtk` instance
         :param context: A context object to define the context on disk where the engine is operating
@@ -106,6 +105,10 @@ class Engine(TankBundle):
         # to access the invoker don't trip on undefined variables.
         self._invoker = None
         self._async_invoker = None
+
+        # Flow host object used in Flow asset management integration
+        # Engines that support Flow integration will initialize this value to an instance of FlowHost
+        self._flow_host = None
 
         # get the engine settings
         settings = self.__env.get_engine_settings(self.__engine_instance_name)
@@ -167,7 +170,7 @@ class Engine(TankBundle):
         # Do Flow sdk initialization if context is configured with Flow
         if context.flow_project_id:
             try:
-                flow_utils.init_flow(tk.pipeline_configuration, context.flow_project_id)
+                flow_utils.init_flow(tk.pipeline_configuration, context)
             except RuntimeError as exc:
                 self.log_error("Error occurred during Flow initialization!")
                 self.log_exception(exc)
@@ -266,7 +269,6 @@ class Engine(TankBundle):
         # note: we make an exception for the shotgun engine which is a
         # special case.
         if self.name != constants.SHOTGUN_ENGINE_NAME:
-
             self.register_command(
                 "Open Log Folder",
                 self.__open_log_folder,
@@ -332,7 +334,7 @@ class Engine(TankBundle):
 
         if self.has_ui:
             # only import QT if we have a UI
-            from .qt import QtGui, QtCore
+            from .qt import QtCore, QtGui
 
             url = QtCore.QUrl.fromLocalFile(LogManager().log_folder)
             status = QtGui.QDesktopServices.openUrl(url)
@@ -420,10 +422,10 @@ class Engine(TankBundle):
         if self.has_ui:
             # we cannot import QT until here as non-ui engines don't have QT defined.
             try:
+                from .qt import QtCore
                 from .qt.busy_dialog import BusyDialog
-                from .qt import QtGui, QtCore
 
-            except:
+            except Exception:
                 # QT import failed. This may be because someone has upgraded the core
                 # to the latest but are still running a earlier version of the
                 # Shotgun or Shell engine where the self.has_ui method is not
@@ -434,7 +436,6 @@ class Engine(TankBundle):
             else:
                 # our qt import worked!
                 if not self.__global_progress_widget:
-
                     # no window exists - create one!
                     (
                         window,
@@ -461,7 +462,6 @@ class Engine(TankBundle):
                     window.show()
 
                 else:
-
                     # just update the message for the existing window
                     self.__global_progress_widget.set_contents(title, details)
 
@@ -694,6 +694,18 @@ class Engine(TankBundle):
         """
         return True
 
+    @property
+    def flow_host(self) -> flow_host.FlowHost | None:  # noqa: F811
+        """If the current context is Flow enabled, and the current
+        engine supports Flow integration, this value will be an instance of FlowHost.
+        The FlowHost class implements the required interface for the Flow asset management
+        integration to work within a dcc/engine.
+
+        If the current context is not Flow enabled, or the current engine has not had
+        Flow support added, the value will be None.
+        """
+        return self._flow_host
+
     ##########################################################################################
     # init and destroy
 
@@ -818,7 +830,6 @@ class Engine(TankBundle):
             # a context change. If one of them is not, then we remove it
             # from the persistent app pool, which will force it to be
             # rebuilt when apps are loaded later on.
-            non_compliant_app_paths = []
             for install_path, app_instances in self.__application_pool.items():
                 for instance_name, app in app_instances.items():
                     self.log_debug(
@@ -1034,9 +1045,9 @@ class Engine(TankBundle):
                 new_name_for_existing = "%s:%s" % (command_prefix, name)
                 self.__commands[new_name_for_existing] = existing_item
                 # Record the command prefix in the properties dictionary for future reference.
-                self.__commands[new_name_for_existing]["properties"][
-                    "prefix"
-                ] = command_prefix
+                self.__commands[new_name_for_existing]["properties"]["prefix"] = (
+                    command_prefix
+                )
                 del self.__commands[name]
                 # Record the original command name to make sure any additional commands
                 # registered with this name are treated as duplicates and fully prefixed.
@@ -1208,7 +1219,7 @@ class Engine(TankBundle):
             self._invoker if invoker_id == self._SYNC_INVOKER else self._async_invoker
         )
         if invoker:
-            from .qt import QtGui, QtCore
+            from .qt import QtCore, QtGui
 
             if (
                 QtGui.QApplication.instance()
@@ -1564,12 +1575,10 @@ class Engine(TankBundle):
 
         # in the parent directly, get all the font-specific directories
         for font_dir_name in os.listdir(fonts_parent_dir):
-
             # the specific font directory
             font_dir = os.path.join(fonts_parent_dir, font_dir_name)
 
             if os.path.isdir(font_dir):
-
                 # iterate over the font files and attempt to load them
                 #
                 # NOTE: We're loading the ttf files in reverse order to work around
@@ -1580,7 +1589,6 @@ class Engine(TankBundle):
                 # instead of the regular style. So...we're going to install these in
                 # reverse order so that the regular light style is preferred.
                 for font_file_name in reversed(list(os.listdir(font_dir))):
-
                     # only process actual font files. It appears as though .ttf
                     # is the most common extension for use on win/mac/linux so
                     # for now limit to those files.
@@ -1694,7 +1702,8 @@ class Engine(TankBundle):
             self.logger.exception(exc)
 
             import traceback
-            from sgtk.platform.qt import QtGui, QtCore
+
+            from sgtk.platform.qt import QtCore, QtGui
 
             # A very simple widget that ensures that the exception is visible and
             # selectable should the user need to copy/paste it into a support
@@ -1803,6 +1812,9 @@ class Engine(TankBundle):
 
         Better to be safe though as deleting/releasing a widget that
         still has events in the event queue will cause a hard crash!
+
+        Widgets that are never released here can crash some hosts when
+        they quit: see :meth:`_destroy_qt_dialogs`.
         """
         still_trash = []
         for widget in self.__qt_widget_trash:
@@ -1830,6 +1842,65 @@ class Engine(TankBundle):
         self.log_debug(
             "Widget trash contains %d widgets" % (len(self.__qt_widget_trash))
         )
+
+    def _destroy_qt_dialogs(self):
+        """
+        Close every dialog created by this engine that is still open, then
+        immediately delete the Qt widgets of all closed dialogs.
+
+        When a dialog is closed, its widgets are kept in a widget trash and only
+        deleted once nothing else references them. Widgets with reference
+        cycles, which most app dialogs have, are never deleted that way: they
+        stay alive as parentless top-level widgets until the host application
+        quits. Some hosts destroy these widgets natively as part of their own
+        shutdown, which can crash PySide. For example, release builds of Maya
+        2027.2 (PySide6) crash on quit after a Toolkit dialog was opened and
+        closed.
+
+        Call this method from an engine when the host application starts to
+        quit, while the host and the Qt event loop are still fully alive, for
+        example from a ``kMayaExiting`` callback in Maya. It is not called by
+        :meth:`destroy`, and the engine should not show dialogs afterwards.
+
+        Each dialog still open is closed first, so its app shuts down as if the
+        user had closed it. A dialog whose widget refuses to close is left
+        alone. Then the C++ object of every widget in the trash is deleted right
+        away, rather than with ``deleteLater()``, because deferred deletions
+        might never be processed while the host quits. Python references to
+        these widgets raise ``RuntimeError`` if they are used afterwards.
+        """
+        from .qt import shiboken
+
+        for dialog in self.__created_qt_dialogs[:]:
+            if shiboken is not None and not shiboken.isValid(dialog):
+                # Already deleted, for example with a parent dialog.
+                self.__created_qt_dialogs.remove(dialog)
+                continue
+            try:
+                # The dialog_closed signal moves the dialog and its widget to
+                # the widget trash, see _on_dialog_closed.
+                dialog.close()
+            except Exception:
+                self.logger.exception("Could not close a dialog.")
+
+        if not self.__qt_widget_trash:
+            return
+
+        if shiboken is None:
+            self.logger.debug("Cannot delete the widget trash: no shiboken.")
+            return
+
+        trash = self.__qt_widget_trash
+        self.__qt_widget_trash = []
+        self.logger.debug("Deleting %d widgets in the widget trash." % len(trash))
+        for widget in trash:
+            # detach_widget returns None for a dialog without a widget.
+            if widget is None or not shiboken.isValid(widget):
+                continue
+            try:
+                shiboken.delete(widget)
+            except Exception:
+                self.logger.exception("Could not delete a widget.")
 
     def show_dialog(self, title, bundle, widget_class, *args, **kwargs):
         """
@@ -2155,8 +2226,7 @@ class Engine(TankBundle):
                 base["dialog_base"] = None
             base["wrapper"] = importer.binding
             base["shiboken"] = importer.shiboken
-        except:
-
+        except Exception:
             self.log_exception(
                 "Default engine QT definition failed to find QT. "
                 "This may need to be subclassed."
@@ -2456,7 +2526,7 @@ class Engine(TankBundle):
         invoker = None
         async_invoker = None
         if self.has_ui:
-            from .qt import QtGui, QtCore
+            from .qt import QtCore, QtGui
 
             # Classes are defined locally since Qt might not be available.
             if QtGui and QtCore:
@@ -2878,7 +2948,6 @@ def current_engine():
 
     :returns: :class:`Engine` instance or None if no engine is running.
     """
-    global g_current_engine
     return g_current_engine
 
 

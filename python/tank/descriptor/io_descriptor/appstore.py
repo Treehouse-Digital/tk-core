@@ -22,9 +22,10 @@ import typing
 import urllib.parse
 import urllib.request
 
-from tank.util.version import is_version_newer
 from tank_vendor import shotgun_api3
 from tank_vendor.shotgun_api3.lib import httplib2
+
+from tank.util.version import is_version_newer
 
 from ... import LogManager
 from ...constants import SUPPORT_URL
@@ -65,7 +66,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
     _app_store_connections = {}
 
     # internal app store mappings
-    (APP, FRAMEWORK, ENGINE, CONFIG, CORE) = range(5)
+    APP, FRAMEWORK, ENGINE, CONFIG, CORE = range(5)
 
     _APP_STORE_OBJECT = {
         constants.DESCRIPTOR_APP: constants.TANK_APP_ENTITY_TYPE,
@@ -231,7 +232,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
             link_field = self._APP_STORE_LINK[self._bundle_type]
 
             # connect to the app store
-            (sg, _) = self.__create_sg_app_store_connection()
+            sg, _ = self.__create_sg_app_store_connection()
 
             if self._bundle_type == self.CORE:
                 # special handling of core since it doesn't have a high-level 'bundle' entity
@@ -413,7 +414,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
         is to be downloaded to.
         """
         # connect to the app store
-        (sg, script_user) = self.__create_sg_app_store_connection()
+        sg, script_user = self.__create_sg_app_store_connection()
 
         # fetch metadata from sg...
         metadata = self.__refresh_metadata(destination_path)
@@ -445,7 +446,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
         # write a stats record to the tank app store
         try:
             # connect to the app store
-            (sg, script_user) = self.__create_sg_app_store_connection()
+            sg, script_user = self.__create_sg_app_store_connection()
 
             # fetch metadata from sg...
             metadata = self.__refresh_metadata(download_path)
@@ -745,7 +746,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
         )
 
         # connect to the app store
-        (sg, _) = self.__create_sg_app_store_connection()
+        sg, _ = self.__create_sg_app_store_connection()
 
         # get latest get the filter logic for what to exclude
         if constants.APP_STORE_QA_MODE_ENV_VAR in os.environ:
@@ -818,7 +819,6 @@ class IODescriptorAppStore(IODescriptorDownloadable):
 
         # and filter out based on version constraint
         if constraint_pattern:
-
             version_numbers = [x.get("code") for x in matching_records]
             version_to_use = self._find_latest_tag_by_pattern(
                 version_numbers, constraint_pattern
@@ -977,11 +977,10 @@ class IODescriptorAppStore(IODescriptorDownloadable):
         sg_url = self._sg_connection.base_url
 
         if sg_url not in self._app_store_connections:
-
             # Connect to associated Shotgun site and retrieve the credentials to use to
             # connect to the app store site
             try:
-                (script_name, script_key) = self.__get_app_store_key_from_shotgun()
+                script_name, script_key = self.__get_app_store_key_from_shotgun()
             except urllib.error.HTTPError as e:
                 if e.code == 403:
                     # edge case alert!
@@ -994,7 +993,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
                     # trigger a refresh of our session token by issuing a shotgun API call
                     self._sg_connection.find_one("HumanUser", [])
                     # and retry
-                    (script_name, script_key) = self.__get_app_store_key_from_shotgun()
+                    script_name, script_key = self.__get_app_store_key_from_shotgun()
                 else:
                     raise
 
@@ -1146,7 +1145,7 @@ class IODescriptorAppStore(IODescriptorDownloadable):
                 % self
             )
             # connect to the app store
-            (sg, _) = self.__create_sg_app_store_connection()
+            sg, _ = self.__create_sg_app_store_connection()
             log.debug("...connection established: %s" % sg)
         except Exception as e:
             log.debug("...could not establish connection: %s" % e)

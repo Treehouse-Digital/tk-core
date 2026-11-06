@@ -9,18 +9,18 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import inspect
-from io import StringIO
 import logging
 import os
 import shutil
 import tempfile
+from io import StringIO
 from unittest import mock
 
 import tank
 from tank.errors import TankError, TankHookMethodDoesNotExistError
 from tank.platform import application, validation
 from tank.template import Template
-from tank_test.tank_test_base import *
+from tank_test.tank_test_base import TankTestBase
 
 
 class TestApplication(TankTestBase):
@@ -466,7 +466,7 @@ class TestExecuteHook(TestApplication):
             "{config}/config_test_hook.py:{config}/more_hooks/config_test_hook.py"
         )
 
-        (disk_location_1, disk_location_2) = hook.test_inheritance_disk_location()
+        disk_location_1, disk_location_2 = hook.test_inheritance_disk_location()
 
         self.assertEqual(
             disk_location_1, os.path.join(self.project_config, "hooks", "toolkitty.png")

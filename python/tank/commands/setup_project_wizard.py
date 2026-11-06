@@ -370,12 +370,10 @@ class SetupProjectWizard(object):
         # by default, the wizard will also try to help out with the creation of
         # the project root folder if it doesn't already exist!
         if create_folders:
-
             # make sure name is valid before starting to create directories...
             self._params.validate_project_disk_name(project_disk_name)
             self._log.debug("Will try to create project folders on disk...")
             for s in self._params.get_required_storages():
-
                 # get the full path
                 proj_path = self._params.preview_project_path(
                     s, project_disk_name, sys.platform
@@ -651,9 +649,9 @@ class SetupProjectWizard(object):
                     )
                     return_data["using_runtime"] = False
                     return_data["pipeline_config"] = data
-                    return_data[
-                        "core_path"
-                    ] = pipelineconfig_utils.resolve_all_os_paths_to_core(core_api_root)
+                    return_data["core_path"] = (
+                        pipelineconfig_utils.resolve_all_os_paths_to_core(core_api_root)
+                    )
 
                     # finally, check the logic for localization:
                     # if this core that we have found and resolved is localized,
@@ -753,7 +751,6 @@ class SetupProjectWizard(object):
             self._params.get_distribution_mode()
             == ProjectSetupParameters.CENTRALIZED_CONFIG
         ):
-
             # ---- check if we should run the localization afterwards
 
             # note - when running via the wizard, toolkit script credentials are

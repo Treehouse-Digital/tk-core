@@ -33,7 +33,6 @@ def main():
     environ["PYTHONPATH"] = os.path.pathsep.join(
         [
             os.path.join(current_folder, "..", "python"),
-            os.path.join(current_folder, "..", "python", "third_party"),
             os.path.join(current_folder, "..", "..", "python"),
         ]
     )
@@ -53,7 +52,6 @@ def main():
             filenames = sys.argv[1:] or glob.iglob(os.path.join(current_folder, "*.py"))
 
         for filename in filenames:
-
             # Skip the launcher. :)
             if filename.endswith(current_file):
                 continue

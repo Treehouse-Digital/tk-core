@@ -24,15 +24,14 @@ at any point.
 
 # Using "with" with the lock to make sure it is always released.
 
-from .errors import AuthenticationCancelled
-from .console_authentication import ConsoleLoginHandler, ConsoleRenewSessionHandler
-
-from .. import LogManager
-
-import threading
 import os
+import threading
+
 from tank.util import is_windows
 
+from .. import LogManager
+from .console_authentication import ConsoleLoginHandler, ConsoleRenewSessionHandler
+from .errors import AuthenticationCancelled
 
 logger = LogManager.get_logger(__name__)
 
@@ -56,7 +55,7 @@ def _get_current_os_user():
 
             pwd_entry = pwd.getpwuid(os.geteuid())
             return pwd_entry[0]
-        except:
+        except Exception:
             return None
 
 
@@ -77,6 +76,7 @@ def _get_ui_state() -> bool:
         QtGui = None
 
     return bool(QtGui and QtGui.QApplication.instance())
+
 
 class SessionRenewal(object):
     """
@@ -122,7 +122,6 @@ class SessionRenewal(object):
         """
         logger.debug("About to take the authentication lock.")
         with SessionRenewal._renew_session_internal_lock:
-
             logger.debug("Took the authentication lock.")
 
             # When authentication is cancelled, every thread who enter the authentication
@@ -220,6 +219,7 @@ def renew_session(user):
     # If we have a gui, we need gui based authentication
     if has_ui:
         from .ui_authentication import UiAuthenticationHandler
+
         authenticator = UiAuthenticationHandler(
             is_session_renewal=True, session_metadata=user.get_session_metadata()
         )

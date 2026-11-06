@@ -14,15 +14,13 @@ Unit tests tank updates.
 
 import datetime
 import os
+
 import sgtk
-
 from sgtk.util import ShotgunPath
-
-
-from tank_test.tank_test_base import setUpModule  # noqa
 from tank_test.tank_test_base import (
-    mock,
     TankTestBase,
+    mock,
+    setUpModule,  # noqa
 )
 
 
@@ -163,10 +161,8 @@ class TestSetupProjectWizard(TankTestBase):
             {
                 "darwin": "/Volumes/configs/{0}".format(self.short_test_name),
                 "linux": "/mnt/configs/{0}".format(self.short_test_name),
-
                 # Compat with tk-framework-adminui prior to v0.8.1
                 "linux2": "/mnt/configs/{0}".format(self.short_test_name),
-
                 "win32": "Z:\\configs\\{0}".format(self.short_test_name),
             },
         )
@@ -207,8 +203,9 @@ class TestSetupProjectWizard(TankTestBase):
         self._wizard.set_configuration_location(path.linux, path.windows, path.macosx)
 
         # Upload method not implemented on Mockgun yet, so skip that bit.
-        with mock.patch(
-            "tank_vendor.shotgun_api3.lib.mockgun.mockgun.Shotgun.upload"
-        ), mock.patch("tank.pipelineconfig_utils.get_core_api_version") as api_mock:
+        with (
+            mock.patch("tank_vendor.shotgun_api3.lib.mockgun.mockgun.Shotgun.upload"),
+            mock.patch("tank.pipelineconfig_utils.get_core_api_version") as api_mock,
+        ):
             api_mock.return_value = "HEAD"
             self._wizard.execute()

@@ -44,7 +44,6 @@ class SymlinkToken(object):
         :param sg_data: Shotgun data dictionary.
         """
         if self._name.startswith("$"):
-
             # strip the dollar sign
             token = self._name[1:]
 
@@ -59,8 +58,7 @@ class SymlinkToken(object):
             # - listfield tokens contain the value
             # - sg entity values contain the value in a compute_name key
             name_value = None
-            for (field_name, field_value) in sg_data.items():
-
+            for field_name, field_value in sg_data.items():
                 if token == field_name:
                     if isinstance(field_value, dict):
                         # entity data is contained in a computed_name key (see above)

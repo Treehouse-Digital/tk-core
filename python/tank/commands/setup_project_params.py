@@ -9,29 +9,19 @@
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
 import os
+import sys
 import tempfile
 import uuid
-import sys
-
-from . import constants
-from . import util
-
-from ..util import StorageRoots
-from ..util import sgre as re
-from ..util import shotgun
-from ..util import filesystem
-from ..util import is_windows
-from ..util.version import is_version_newer
-from ..util.zip import unzip_file, zip_file
-
-from .. import hook
-from ..errors import TankError, TankErrorProjectIsSetup
-from .. import pipelineconfig_utils
-from ..descriptor import create_descriptor, Descriptor
 
 from tank_vendor import yaml
 
-from ..util import ShotgunPath
+from .. import hook, pipelineconfig_utils
+from ..descriptor import Descriptor, create_descriptor
+from ..errors import TankError, TankErrorProjectIsSetup
+from ..util import ShotgunPath, StorageRoots, filesystem, sgre as re, shotgun
+from ..util.version import is_version_newer
+from ..util.zip import unzip_file, zip_file
+from . import constants, util
 
 
 class ProjectSetupParameters(object):
@@ -57,7 +47,7 @@ class ProjectSetupParameters(object):
     - run project setup!
     """
 
-    (CENTRALIZED_CONFIG, DISTRIBUTED_CONFIG) = range(2)
+    CENTRALIZED_CONFIG, DISTRIBUTED_CONFIG = range(2)
 
     def __init__(self, log, sg):
         """
@@ -438,7 +428,6 @@ class ProjectSetupParameters(object):
             # these are resolved at bootstrap time.
             roots_data = {}
             for storage_name in self.get_required_storages():
-
                 # for distributed configs, we don't include any paths
                 roots_data[storage_name] = {
                     "windows_path": None,
@@ -514,8 +503,8 @@ class ProjectSetupParameters(object):
 
             # if force is false then tank_name must be empty
             if (
-                self.get_auto_path_mode() == False
-                and force == False
+                self.get_auto_path_mode() is False
+                and force is False
                 and proj["tank_name"] is not None
             ):
                 raise TankErrorProjectIsSetup()
@@ -928,7 +917,6 @@ class ProjectSetupParameters(object):
             # as the pipeline config location. That will confuse tank.
             config_path_current_os = self.get_configuration_location(sys.platform)
             for storage_name in self.get_required_storages():
-
                 # get the project path for this storage
                 # note! at this point, the storage root has been checked and exists on disk.
                 project_path_local_os = self.get_project_path(
@@ -944,7 +932,6 @@ class ProjectSetupParameters(object):
 
         # validate the local storages
         for storage_name in self.get_required_storages():
-
             # get the project path for this storage
             # note! at this point, the storage root has been checked and exists on disk.
             project_path_local_os = self.get_project_path(storage_name, sys.platform)
@@ -960,7 +947,6 @@ class ProjectSetupParameters(object):
         # the core we are trying to marry up with the config is recent enough
         required_core_version = self._config_template.get_required_core_version()
         if required_core_version:
-
             # now figure out the version of the desired API
             api_location = self.get_associated_core_path(sys.platform)
             curr_core_version = pipelineconfig_utils.get_core_api_version(api_location)
@@ -1019,7 +1005,7 @@ class TemplateConfiguration(object):
         # now extract the cfg and validate
         old_umask = os.umask(0)
         try:
-            (self._cfg_folder, self._version, self._config_mode) = self._process_config(
+            self._cfg_folder, self._version, self._config_mode = self._process_config(
                 config_uri
             )
         finally:
@@ -1272,7 +1258,7 @@ class TemplateConfiguration(object):
         storage_info = {}
 
         # do the storage lookup and mapping in PTR
-        (local_storage_lookup, unmapped_roots) = self._storage_roots.get_local_storages(
+        local_storage_lookup, unmapped_roots = self._storage_roots.get_local_storages(
             self._sg
         )
 
@@ -1280,7 +1266,6 @@ class TemplateConfiguration(object):
 
         # process each required storage root and populate the info dict
         for root_name, root_info in self._storage_roots:
-
             # description
             storage_info[root_name] = {"description": root_info.get("description")}
 

@@ -8,11 +8,11 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import subprocess
 import pprint
+import subprocess
 
-from .platforms import is_windows
 from ..log import LogManager
+from .platforms import is_windows
 
 logger = LogManager.get_logger(__name__)
 
@@ -58,7 +58,7 @@ def subprocess_check_output(*popenargs, **kwargs):
         stderr=subprocess.STDOUT,
         stdin=subprocess.PIPE,
         *popenargs,
-        **kwargs
+        **kwargs,
     )
     # Very important to close stdin on Windows. See issue mentioned above.
     if is_windows():
@@ -74,7 +74,6 @@ def subprocess_check_output(*popenargs, **kwargs):
     retcode = process.poll()
 
     if retcode:
-
         logger.debug("Subprocess invocation failed:")
         if popenargs:
             logger.debug("Args  : %s", pprint.pformat(popenargs))

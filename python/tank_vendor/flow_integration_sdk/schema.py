@@ -23,14 +23,16 @@ from tank_vendor.flow_data_sdk.base.exceptions import GQLAPIError
 
 from .exceptions import FlowError
 from .globals import (
+    BASE_COMPONENT_TYPE_ID,
+    BASE_PROPERTY_TYPE_ID,
     BASE_TYPE_ID,
     BINARY_TYPE_ID,
     COMMENT_TYPE_ID,
-    DER_SOURCE_TYPE_ID,
     FOLDER_TYPE_ID,
     get_client,
     get_session_collection,
     IMAGE_TYPE_ID,
+    KIND_BASE_TYPE_ID,
 )
 from .utils import get_logger, trace
 
@@ -42,13 +44,19 @@ from .utils import get_logger, trace
 # Format:  key = schema type id, value = list of parent types
 _schema_tree: dict[str, list[str]] = {}
 
+# The BINARY_TYPE_ID schema still inherits from v1 of the base component type
+# Track this in order to ensure accuracy of this schema cache
+_BASE_COMPONENT_TYPE_ID_V1 = "autodesk.me:component-1.0.0"
+
 # Hardcode some well known relationships and root types
-_schema_tree[IMAGE_TYPE_ID] = [BINARY_TYPE_ID]
-_schema_tree[FOLDER_TYPE_ID] = [BASE_TYPE_ID]
+_schema_tree[BASE_PROPERTY_TYPE_ID] = []
 _schema_tree[BASE_TYPE_ID] = []
-_schema_tree[BINARY_TYPE_ID] = []
-_schema_tree[COMMENT_TYPE_ID] = []
-_schema_tree[DER_SOURCE_TYPE_ID] = []
+_schema_tree[BASE_COMPONENT_TYPE_ID] = []
+_schema_tree[_BASE_COMPONENT_TYPE_ID_V1] = []
+_schema_tree[BINARY_TYPE_ID] = [_BASE_COMPONENT_TYPE_ID_V1]
+_schema_tree[COMMENT_TYPE_ID] = [BASE_COMPONENT_TYPE_ID]
+_schema_tree[FOLDER_TYPE_ID] = [BASE_TYPE_ID]
+_schema_tree[IMAGE_TYPE_ID] = [BINARY_TYPE_ID]
 
 
 # Schema type ids cache
@@ -121,13 +129,24 @@ def cache_schema_config(config_path: str):
     # Add configured types to schema tree cache
     for schema in raw_config.get("schemas", {}):
         type_name = schema.get("name", "")
+        kind = schema.get("kind")
+        if not kind:
+            raise ValueError(f"Schema '{type_name}' is missing required 'kind' field.")
         parent_types = schema.get("inherits", [])
-        # strip "$ref:" suffix
-        parent_types = [pt[5:] for pt in parent_types]
-        # convert to full ids
-        parent_types = [get_schema_id(pt) for pt in parent_types]
-        # always include base type
-        parent_types.append(BASE_TYPE_ID)
+        # strip "$ref:" prefix
+        parent_types = [pt.removeprefix("$ref:") for pt in parent_types]
+        # Resolve each inherited type name defined in this config to its full id,
+        # e.g. "type.container" -> "<namespace>:type.container-1.0.0".
+        parent_types = [get_schema_id(pt) or pt for pt in parent_types]
+        if kind not in KIND_BASE_TYPE_ID:
+            raise ValueError(
+                f"Unknown schema kind '{kind}' for '{type_name}'. "
+                f"Must be one of: {', '.join(KIND_BASE_TYPE_ID)}"
+            )
+        # mirror SchemaBuilder.build(): the kind base type is only sent when
+        # inherits is omitted, otherwise it is reached through the inherited types
+        if not parent_types:
+            parent_types.append(KIND_BASE_TYPE_ID[kind])
         type_id = get_schema_id(type_name)
         # store ancestral relationship
         if type_id:
@@ -239,3 +258,20 @@ def is_sub_type(base_id: str, type_id: str) -> bool:
         except GQLAPIError as exc:
             msg = f'Error querying subtypes of base type "{base_id}": {exc}'
             raise FlowError(msg) from exc
+
+
+def get_schema_config_version(config_path: str) -> str:
+    """Retrieve the schema config version from a config.json file.
+
+    Args:
+        config_path: Path to the schema config json file.
+
+    Returns:
+        The schema config version, or 'unknown' if the key is not present.
+
+    Raises:
+        RuntimeError: If the config file is not found.
+        ValueError: If the config file contains invalid JSON.
+    """
+    config = _read_schema_config(config_path)
+    return config.get("version", "unknown")

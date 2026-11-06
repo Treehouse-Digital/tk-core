@@ -20,11 +20,11 @@ from queue import Empty
 import tank
 from tank import LogManager, folder, path_cache
 from tank.util import StorageRoots
-from tank_test.tank_test_base import setUpModule  # noqa
 from tank_test.tank_test_base import (
     TankTestBase,
     mock,
     only_run_on_windows,
+    setUpModule,  # noqa
     temp_env_var,
 )
 
@@ -160,8 +160,7 @@ class TestAddMapping(TestPathCache):
         add_item_to_cache(self.path_cache, self.entity, full_path)
 
         res = self.db_cursor.execute(
-            "SELECT path, root FROM path_cache "
-            "WHERE entity_type = ? AND entity_id = ?",
+            "SELECT path, root FROM path_cache WHERE entity_type = ? AND entity_id = ?",
             (self.entity["type"], self.entity["id"]),
         )
         entry = res.fetchall()[0]
@@ -410,8 +409,8 @@ class TestAddMapping(TestPathCache):
             response = original_batch(batch_data)
             for entity in response:
                 if entity.get("path") and entity["path"].get("local_path"):
-                    entity["path"]["local_path"] = (
-                        entity["path"]["local_path"].replace("\\", "/")
+                    entity["path"]["local_path"] = entity["path"]["local_path"].replace(
+                        "\\", "/"
                     )
             return response
 
@@ -427,8 +426,7 @@ class TestAddMapping(TestPathCache):
 
         # Verify the path-cache row was committed.
         res = self.db_cursor.execute(
-            "SELECT path FROM path_cache "
-            "WHERE entity_type = ? AND entity_id = ?",
+            "SELECT path FROM path_cache WHERE entity_type = ? AND entity_id = ?",
             (self.entity["type"], self.entity["id"]),
         )
         self.assertEqual(len(res.fetchall()), 1)
@@ -575,9 +573,7 @@ class TestShotgunSync(TankTestBase):
         to pass in as callbacks to Schema.create_folders. The mock objects are
         then queried to see what paths the code attempted to create.
         """
-        super().setUp(
-            parameters={"project_tank_name": project_tank_name}
-        )
+        super().setUp(parameters={"project_tank_name": project_tank_name})
         self.setup_fixtures()
 
         self.seq = {
@@ -1028,7 +1024,6 @@ class TestConcurrentShotgunSync(TankTestBase):
         event_log_id = 7000
 
         while True:
-
             time.sleep(0.1)
             sys.stderr.write(".")
 
@@ -1453,8 +1448,8 @@ class TestPathCacheBatchOperation(TankTestBase):
         # grab a brand new cursor
         cursor = self._pc._connection.cursor()
 
-        # note: looks like the test below does not fail on travis
-        # but fails in other test setups, so commenting this out.
+        # note: the test below is inconsistent across test setups, so
+        # commenting this out.
         # the important test is the sync further down where we
         # validate that the operation does not error.
         #

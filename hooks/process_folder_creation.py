@@ -13,9 +13,10 @@ This hook is invoked during folder creation when :meth:`sgtk.Sgtk.create_filesys
 called.
 """
 
-from tank import Hook
 import os
 import shutil
+
+from tank import Hook
 from tank.util import is_windows
 
 
@@ -105,10 +106,8 @@ class ProcessFolderCreation(Hook):
         old_umask = os.umask(0)
         locations = []
         try:
-
             # loop through our list of items
             for i in items:
-
                 action = i.get("action")
 
                 if action in ["entity_folder", "folder"]:

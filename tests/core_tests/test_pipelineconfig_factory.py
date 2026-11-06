@@ -11,19 +11,20 @@
 import os
 import pickle
 import sys
-from tank_vendor import yaml
+
 import sgtk
 import tank
-from tank.api import Tank
-from tank.util import is_windows
-from tank.errors import TankInitError
 from sgtk.util import ShotgunPath
-from tank_test.tank_test_base import setUpModule  # noqa
+from tank.api import Tank
+from tank.errors import TankInitError
+from tank.util import is_windows
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
     TankTestBase,
+    mock,
+    setUpModule,  # noqa
 )
+from tank_vendor import yaml
 
 
 class TestTankFromPath(TankTestBase):
@@ -645,7 +646,6 @@ class TestTankFromEntityWithMixedSlashes(TankTestBase):
         """
         # only run this test on windows
         if is_windows():
-
             self.sg_pc_entity["windows_path"] = self.pipeline_config_root.replace(
                 "\\", "/"
             )
@@ -671,9 +671,7 @@ class TestTankFromPathWindowsNoSlash(TankTestBase):
     def setUp(self):
 
         # set up a project named temp, so that it will end up in c:\temp
-        super().setUp(
-            parameters={"project_tank_name": self.PROJECT_NAME}
-        )
+        super().setUp(parameters={"project_tank_name": self.PROJECT_NAME})
 
         # set up std fixtures
         self.setup_fixtures()
@@ -711,7 +709,6 @@ class TestTankFromPathWindowsNoSlash(TankTestBase):
         """
         # only run this test on windows
         if is_windows():
-
             # probe a path inside of project
             test_path = "%s\\%s\\toolkit_test_path" % (
                 self.STORAGE_ROOT,
@@ -746,9 +743,7 @@ class TestTankFromPathOverlapStorage(TankTestBase):
     def setUp(self):
 
         # set up two storages and two projects
-        super().setUp(
-            parameters={"project_tank_name": "foo"}
-        )
+        super().setUp(parameters={"project_tank_name": "foo"})
 
         # add second project
         self.project_2 = {

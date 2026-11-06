@@ -8,20 +8,19 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
-import os
 import inspect
+import os
 
-from . import constants
-from .errors import TankBootstrapError
-from .configuration import Configuration
-from .resolver import ConfigurationResolver
-from ..authentication import ShotgunAuthenticator, flow_auth
-from ..flowam import constants as flow_const
-from ..flowam import utils as flow_utils
-from ..pipelineconfig import PipelineConfiguration
 from .. import LogManager
+from ..authentication import ShotgunAuthenticator, flow_auth
 from ..errors import TankError
+from ..flowam import constants as flow_const, utils as flow_utils
+from ..pipelineconfig import PipelineConfiguration
 from ..util import ShotgunPath
+from . import constants
+from .configuration import Configuration
+from .errors import TankBootstrapError
+from .resolver import ConfigurationResolver
 
 log = LogManager.get_logger(__name__)
 
@@ -589,7 +588,6 @@ class ToolkitManager(object):
             )
 
         if AsyncBootstrapWrapper:
-
             # Bootstrap an Sgtk instance asynchronously in a background thread,
             # followed by launching the engine synchronously in the main application thread.
 
@@ -599,28 +597,23 @@ class ToolkitManager(object):
             self._bootstrapper.bootstrap()
 
         else:
-
             # Since Qt is not available, fall back on synchronous bootstrapping.
             # Execute the whole engine bootstrap logic synchronously in the main application thread,
             # while still calling the provided callbacks in order for the caller to work as expected.
 
             try:
-
                 tk = self._bootstrap_sgtk(engine_name, entity)
 
             except Exception as exception:
-
                 # Handle cleanup after failed completion of the toolkit bootstrap.
                 failed_callback(self.TOOLKIT_BOOTSTRAP_PHASE, exception)
 
                 return
 
             try:
-
                 engine = self._start_engine(tk, engine_name, entity)
 
             except Exception as exception:
-
                 # Handle cleanup after failed completion of the engine startup.
                 failed_callback(self.ENGINE_STARTUP_PHASE, exception)
 
@@ -971,11 +964,17 @@ class ToolkitManager(object):
             # Set authentication overrides in reserved env vars so they will persist
             # across toolkit engine sessions
             if flow_const.FLOW_AUTH_APP_ID in overrides:
-                os.environ["TK_FLOW_AUTH_APPLICATION_ID"] = overrides[flow_const.FLOW_AUTH_APP_ID]
+                os.environ["TK_FLOW_AUTH_APPLICATION_ID"] = overrides[
+                    flow_const.FLOW_AUTH_APP_ID
+                ]
             if flow_const.FLOW_AUTH_BASE_URL in overrides:
-                os.environ["TK_FLOW_AUTH_BASE_URL"] = overrides[flow_const.FLOW_AUTH_BASE_URL]
+                os.environ["TK_FLOW_AUTH_BASE_URL"] = overrides[
+                    flow_const.FLOW_AUTH_BASE_URL
+                ]
             if flow_const.FLOW_AUTH_CALLBACK_URL in overrides:
-                os.environ["TK_FLOW_AUTH_CALLBACK_URL"] = overrides[flow_const.FLOW_AUTH_CALLBACK_URL]
+                os.environ["TK_FLOW_AUTH_CALLBACK_URL"] = overrides[
+                    flow_const.FLOW_AUTH_CALLBACK_URL
+                ]
             settings = flow_auth.resolve_flow_auth_settings()
             flow_auth.init_authentication(settings)
             # Token is intentionally discarded here; it now sits in the file
@@ -986,9 +985,7 @@ class ToolkitManager(object):
                 "MEDM auth misconfigured for AM-ready project: %s" % e
             )
         except Exception as e:
-            raise TankBootstrapError(
-                "MEDM auth failed for AM-ready project: %s" % e
-            )
+            raise TankBootstrapError("MEDM auth failed for AM-ready project: %s" % e)
 
     def _get_configuration(self, entity, progress_callback):
         """
@@ -1129,17 +1126,23 @@ class ToolkitManager(object):
                 sg_project = self._sg_connection.find_one(
                     "Project",
                     [["id", "is", project_id]],
-                    [flow_auth.AM_READY_PROJECT_FIELD],
+                    [
+                        flow_auth.AM_READY_PROJECT_FIELD,
+                        flow_const.FLOW_SCHEMA_VERSION_FIELD,
+                    ],
                 )
                 if sg_project and sg_project.get(flow_auth.AM_READY_PROJECT_FIELD):
-                    # Retrieve and cache the flow am project id on the context object
-                    flow_project_id = sg_project.get(flow_auth.AM_READY_PROJECT_FIELD)
-                    log.info(f"Current SG project is associated with a Flow project: {flow_project_id}")
+                    log.info(
+                        "Current SG project is associated with a Flow project: "
+                        f"{sg_project[flow_auth.AM_READY_PROJECT_FIELD]} with schema "
+                        f"version {sg_project.get(flow_const.FLOW_SCHEMA_VERSION_FIELD)}."
+                    )
+
                     tk, _ = config.get_tk_instance(self._sg_user)
-                    ctx = tk.context_from_entity_dictionary(entity)
-                    ctx.project[flow_auth.AM_READY_PROJECT_FIELD] = flow_project_id
                     # Authenticate into Flow AM
-                    self._trigger_am_auth(tk.pipeline_configuration, entity, progress_callback)
+                    self._trigger_am_auth(
+                        tk.pipeline_configuration, entity, progress_callback
+                    )
 
         return config
 

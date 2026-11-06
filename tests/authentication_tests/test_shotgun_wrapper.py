@@ -8,16 +8,13 @@
 # agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
 # not expressly granted therein are reserved by Shotgun Software Inc.
 
+from tank.authentication import ShotgunAuthenticationError, user_impl
 from tank_test.tank_test_base import (
-    mock,
     ShotgunTestBase,
+    mock,
+    setUpModule,  # noqa
 )
-
-from tank_test.tank_test_base import setUpModule  # noqa
-
-
 from tank_vendor.shotgun_api3 import AuthenticationFault
-from tank.authentication import user_impl, ShotgunAuthenticationError
 
 
 class ShotgunWrapperTests(ShotgunTestBase):

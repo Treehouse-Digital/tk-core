@@ -13,10 +13,10 @@ Main entry points for folder creation.
 
 """
 
+from ..errors import TankError
 from .configuration import FolderConfiguration
 from .folder_io import FolderIOReceiver
 from .folder_types import EntityLinkTypeMismatch
-from ..errors import TankError
 
 
 def create_single_folder_item(
@@ -42,7 +42,6 @@ def create_single_folder_item(
     # ensure its parent folders exist. Then, create the folder for this entity with
     # all its children.
     for folder_obj in folder_objects:
-
         # fill in the information we know about this entity now
         entity_id_seed = {
             entity_type: {"type": entity_type, "id": entity_id},
@@ -168,7 +167,6 @@ def process_filesystem_structure(tk, entity_type, entity_ids, preview, engine):
     # Tasks with no entity associated will be ignored.
     #
     if entity_type == "Task":
-
         filters = ["id", "in"]
         filters.extend(entity_ids)  # weird filter format here
 

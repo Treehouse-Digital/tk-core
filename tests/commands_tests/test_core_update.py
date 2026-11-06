@@ -14,15 +14,13 @@ Unit tests tank core update.
 
 import logging
 
-from tank_test.tank_test_base import setUpModule  # noqa
-from tank_test.tank_test_base import (
-    mock,
-    TankTestBase,
-)
-
 from sgtk.pipelineconfig_utils import get_core_descriptor
-
 from tank_test.mock_appstore import patch_app_store
+from tank_test.tank_test_base import (
+    TankTestBase,
+    mock,
+    setUpModule,  # noqa
+)
 
 
 # We need to patch the currently running core API version, as this will
@@ -88,7 +86,8 @@ class TestCoreUpdate(TankTestBase):
         self.assertEqual(descriptor.version, "v0.19.5")
 
     @mock.patch(
-        "tank.descriptor.descriptor.Descriptor.is_immutable", return_value=True,
+        "tank.descriptor.descriptor.Descriptor.is_immutable",
+        return_value=True,
     )
     def test_immutable_config_core_update_core_api_yaml(
         self, _mock_is_immutable, mock_config_path, *_
@@ -110,7 +109,8 @@ class TestCoreUpdate(TankTestBase):
         self.assertEqual(descriptor.version, "v0.18.91")
 
     @mock.patch(
-        "tank.descriptor.descriptor.Descriptor.is_dev", return_value=True,
+        "tank.descriptor.descriptor.Descriptor.is_dev",
+        return_value=True,
     )
     @mock.patch("tank.descriptor.descriptor.Descriptor.get_path")
     def test_dev_config_core_update_core_api_yaml(

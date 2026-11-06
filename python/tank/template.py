@@ -16,11 +16,11 @@ Management of file and directory templates.
 import os
 import sys
 
-from . import templatekey
-from .errors import TankError
-from . import constants
-from .template_path_parser import TemplatePathParser
 from tank.util import is_linux, is_macos, is_windows, sgre as re
+
+from . import constants, templatekey
+from .errors import TankError
+from .template_path_parser import TemplatePathParser
 
 
 class Template(object):
@@ -474,7 +474,7 @@ class Template(object):
         :returns:           True if the path is valid for this template
         :rtype:             Bool
         """
-        return self.validate_and_get_fields(path, fields, skip_keys) != None
+        return self.validate_and_get_fields(path, fields, skip_keys) is not None
 
     def get_fields(self, input_path, skip_keys=None):
         """
@@ -503,7 +503,7 @@ class Template(object):
         for ordered_keys, static_tokens in zip(self._ordered_keys, self._static_tokens):
             path_parser = TemplatePathParser(ordered_keys, static_tokens)
             fields = path_parser.parse_path(input_path, skip_keys)
-            if fields != None:
+            if fields is not None:
                 break
 
         if fields is None:
@@ -555,6 +555,26 @@ class TemplatePath(Template):
         """
         return self._prefix
 
+    def _dirname(self) -> str:
+        """
+        Returns the directory part of the template, preserving optional
+        section brackets. Finds the last path separator outside any brackets.
+
+        :returns: String
+        """
+        bracket_depth = 0
+        last_sep_outside = -1
+        for i, c in enumerate(self._repr_def):
+            if c == "[":
+                bracket_depth += 1
+            elif c == "]":
+                bracket_depth = max(0, bracket_depth - 1)
+            elif c == "/" and bracket_depth == 0:
+                last_sep_outside = i
+        if last_sep_outside == -1:
+            return ""
+        return self._repr_def[:last_sep_outside]
+
     @property
     def parent(self):
         """
@@ -564,8 +584,12 @@ class TemplatePath(Template):
 
         :returns: :class:`Template`
         """
-        parent_definition = os.path.dirname(self.definition)
-        if parent_definition:
+        parent_definition = self._dirname()
+        # Only create a parent if the definition is non-empty and not a filesystem root.
+        if (
+            parent_definition
+            and os.path.dirname(parent_definition) != parent_definition
+        ):
             return TemplatePath(
                 parent_definition,
                 self.keys,

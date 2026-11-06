@@ -16,11 +16,12 @@ and create a plugin scaffold, complete with standard helpers and
 a primed bundle cache.
 """
 
+import datetime
+
 # system imports
 import os
-import sys
 import shutil
-import datetime
+import sys
 
 # add sgtk API
 this_folder = os.path.abspath(os.path.dirname(__file__))
@@ -31,22 +32,26 @@ sys.path.insert(0, python_folder)
 
 # sgtk imports
 from tank import LogManager
-from tank.util import filesystem, sgre as re
-from tank.errors import TankError
-from tank.descriptor import Descriptor, descriptor_uri_to_dict, descriptor_dict_to_uri
-from tank.descriptor import create_descriptor, is_descriptor_version_missing
-from tank.bootstrap.baked_configuration import BakedConfiguration
 from tank.bootstrap import constants as bootstrap_constants
+from tank.bootstrap.baked_configuration import BakedConfiguration
+from tank.descriptor import (
+    Descriptor,
+    create_descriptor,
+    descriptor_dict_to_uri,
+    descriptor_uri_to_dict,
+    is_descriptor_version_missing,
+)
+from tank.errors import TankError
+from tank.util import filesystem, sgre as re
 from tank_vendor import yaml
-
 from utils import (
-    cache_apps,
-    authenticate,
-    add_authentication_options,
     OptionParserLineBreakingEpilog,
+    add_authentication_options,
+    authenticate,
+    automated_setup_documentation,
+    cache_apps,
     cleanup_bundle_cache,
     wipe_folder,
-    automated_setup_documentation,
 )
 
 # set up logging
@@ -240,7 +245,6 @@ def _process_configuration(
                 with open(shotgun_yaml_path, "w") as pf:
                     pf.write("# Workaround for tk-core bootstrap\nhost: unspecified")
     else:
-
         # if the descriptor in the config contains a version number
         # we will go into a fixed update mode.
         using_latest_config = is_descriptor_version_missing(base_config_uri_dict)
@@ -342,15 +346,12 @@ def _bake_manifest(manifest_data, config_uri, core_descriptor, plugin_root):
     params_path = os.path.join(full_module_path, "manifest.py")
 
     try:
-
         with open(params_path, "wt") as fh:
-
             fh.write("# this file was auto generated.\n\n\n")
 
             fh.write('base_configuration="%s"\n' % config_uri)
 
             for parameter, value in manifest_data.items():
-
                 if parameter == "base_configuration":
                     continue
 
@@ -832,7 +833,6 @@ http://developer.shotgridsoftware.com/tk-core/descriptor
 
 
 if __name__ == "__main__":
-
     # set up std toolkit logging to file
     LogManager().initialize_base_file_handler("build_plugin")
 
